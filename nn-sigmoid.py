@@ -7,6 +7,7 @@ batch_size = 32
 display_step =1
 _seed = 3
 save_step = 30
+logs_path = '/tmp/tensorflow/'
 
 
 
@@ -82,12 +83,17 @@ def multilayer_perceptron(x):
 
 
 saver = tf.train.Saver()
+writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph())
+
+
 
 #Construction of the model
 logits =multilayer_perceptron(X)
 
 #Define the losses 
 loss_op = tf.nn.l2_loss(logits - Y)
+tf.summary.scalar("L2loss", loss_op)
+summary_op = tf.summary.merge_all() # Extensibility
 
 #Optimization
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -105,8 +111,9 @@ with tf.Session() as sess:
 		total_batch = int(1000)
 		for i in range(total_batch):
 			batch_x,batch_y = xor_next_batch(batch_size)
-			_,c =sess.run([train_op,loss_op],feed_dict={X:batch_x,Y:batch_y})
+			_,c,summary =sess.run([train_op,loss_op,summary_op],feed_dict={X:batch_x,Y:batch_y})
 			avg_cost +=c/total_batch
+			writer.add_summary(summary, epoch * total_batch + i)
 		if epoch % display_step ==0:
 			print("Epoch:", '%04d' % (epoch+1), "cost={:.9f}".format(avg_cost))
 		if epoch %save_step ==0:
