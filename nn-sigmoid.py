@@ -6,6 +6,10 @@ training_epochs = 10000
 batch_size = 32
 display_step =1
 _seed = 3
+save_step = 30
+
+
+
 
 #Network Parameters
 n_hidden_1 = 5
@@ -76,6 +80,9 @@ def multilayer_perceptron(x):
 	out_layer = tf.add(tf.matmul(layer_5,weights['out']),biases['out'])
 	return tf.sigmoid(out_layer) #Sigmoid Activation for scaling zero to one
 
+
+saver = tf.train.Saver()
+
 #Construction of the model
 logits =multilayer_perceptron(X)
 
@@ -102,4 +109,11 @@ with tf.Session() as sess:
 			avg_cost +=c/total_batch
 		if epoch % display_step ==0:
 			print("Epoch:", '%04d' % (epoch+1), "cost={:.9f}".format(avg_cost))
+		if epoch %save_step ==0:
+			save_path = saver.save(sess, "model_"+ str(epoch)+".ckpt")
+			print("Model saved in file: %s" % save_path)
+
+print ("Optimization Complete")
+save_path = saver.save(sess, "model_final.ckpt")
+print("Model saved in file: %s" % save_path)
 
