@@ -1,5 +1,56 @@
+First Case: Iteration 1e5
+N_IN:5
+HL:[3,2]
+
 Machine 1:CPU only
 Model name:Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
-Core:2
-Threads per core:2
 Time Taken : 21.538387537002563
+
+
+Machine 2:Titan X(Pascal)
+Time Taken : 42.213749170303345
+
+
+Second Case: Iteration 1e3
+N_IN:12
+HL:[6,3,2]
+
+Machine 1:CPU only
+Model name:Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
+Time Taken : 5.118022680282593
+
+Machine 2:Titan X(Pascal)
+Time Taken : 3.8379030227661133
+
+
+
+Third Case: Iteration 1e3
+N_IN:16
+HL:[8,4,2]
+
+Machine 1:CPU only
+Model name:Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
+Time Taken : 90.1674587726593
+
+Machine 2:Titan X(Pascal)
+Time Taken : 66.72825503349304
+
+
+Fourth Case: Iteration 1e1
+N_IN:20
+HL:[10,5,3,2]
+
+
+Machine 1:CPU only
+Model name:Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
+Total Time: 16.871684312820435
+
+Machine 2:Titan X(Pascal)
+Time Taken : 7.341823101043701
+
+
+
+
+
+
+

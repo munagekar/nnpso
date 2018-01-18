@@ -20,7 +20,7 @@ import os
 
 #Dataset Generation for xor
 
-N_IN = 5
+N_IN = 20
 N_BATCHSIZE = 2**N_IN
 #A list of lists having N_IN elements all either 0 or 1
 xor_in = [list(i) for i in itertools.product([0, 1], repeat=N_IN)]
@@ -31,13 +31,13 @@ xor_out = list(map(lambda x: [(reduce(operator.xor,x))],xor_in))
 #Parameters for pso
 #TODO: Add batch size and other properties
 N_PARTICLES = 32
-N_ITERATIONS = int(1e5)
+N_ITERATIONS = int(1e1)
 
 
 #Basic Neural Network Definition
 #Simple feedforward Network
 
-HIDDEN_LAYERS = [3,2]
+HIDDEN_LAYERS = [10,5,3,2]
 HIDDEN_LAYERS.append(1)
 
 
