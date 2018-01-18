@@ -11,6 +11,10 @@ from functools import reduce
 import operator
 import tensorflow as tf
 import time
+import os
+
+#To force tensorflow-gpu to cpu
+#os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 
 
