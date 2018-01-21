@@ -23,7 +23,7 @@ N_BATCHSIZE = 32
 #Parameters for pso
 #TODO: Add batch size and other properties
 N_PARTICLES = 32
-N_ITERATIONS = int(1e6)
+N_ITERATIONS = int(100)
 LEARNING_RATE = 0.001
 
 
@@ -50,7 +50,7 @@ def activate(input_layer,act = 'relu',name='activation'):
 	if act=='sigmoid':
 		return tf.nn.sigmoid(input_layer,name)
 
-#Xorgenearor Function
+#Xorgenerator Function
 def xor_next_batch(batch_size,n_input):
 	batch_x = []
 	batch_y = []
@@ -72,6 +72,7 @@ xor_in = [list(i) for i in itertools.product([0, 1], repeat=N_IN)]
 #A list having 2^N lists each having xor of each input list in the list of lists
 xor_out = list(map(lambda x: [(reduce(operator.xor,x))],xor_in))
 
+
 net_in = tf.placeholder(dtype=tf.float32,
 						shape=[N_BATCHSIZE,N_IN],
 						name='net_in')
@@ -88,7 +89,8 @@ for idx,num_neuron in enumerate(HIDDEN_LAYERS):
 										   num_outputs=num_neuron,
 										   activation_fn =None,
 										   trainable=True,
-										   scope = 'fc'+str(idx+1))
+										   scope = 'fc'+str(idx+1)
+										   )
 	net = activate(net,'sigmoid',name='act_'+str(idx+1))
 
 #The required output is the net
@@ -103,15 +105,28 @@ train_op = optimizer.minimize(loss)
 
 
 init = tf.global_variables_initializer()
+
+
+for var in tf.global_variables():
+	print (var)
+
+
+
 with tf.Session() as sess:
 	sess.run(init)
 	start_time = time.time()
 	for i in range(N_ITERATIONS):
 		#xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
 		_,_loss = sess.run([train_op,loss],feed_dict={net_in:xor_in,label:xor_out})
+		
+		with tf.variable_scope("fc1", reuse=True):
+			myvar =tf.get_variable("weights")
+			myvar = tf.get_variable("biases")
+			print(myvar)
 		if i%1000 == 0:
 			print ('Iteration:',i,'Loss',_loss)
 
 	end_time = time.time()
 
 	print('Total Time:',end_time-start_time)
+
