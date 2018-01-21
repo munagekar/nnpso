@@ -22,7 +22,7 @@ N_BATCHSIZE = 32
 
 #Parameters for pso
 #TODO: Add batch size and other properties
-N_PARTICLES = 32
+N_PARTICLES = 2
 N_ITERATIONS = int(100)
 LEARNING_RATE = 0.001
 
@@ -81,29 +81,39 @@ label = tf.placeholder(dtype=tf.float32,
 					   shape=[N_BATCHSIZE,1],
 					   name='net_label')
 
-net = net_in
+###MULTI-PARTICLE NEURAL NETS
+
+losses = []
+nets = []
+train_ops =[]
+
+for pno in range(N_PARTICLES):
+	net = net_in
+
+	for idx,num_neuron in enumerate(HIDDEN_LAYERS):
+		layer_scope = 'pno'+str(pno+1)+'fc'+str(idx+1)
+		net = tf.contrib.layers.fully_connected(inputs=net,
+											    num_outputs=num_neuron,
+											    activation_fn =None,
+											    trainable=True,
+											    scope = layer_scope)
+		net = activate(net,'sigmoid',name='act_'+layer_scope)
+
+	#Define loss for each of the particle nets
+	loss = tf.nn.l2_loss(net - label)
+	#Define an optimizer for the particle nets
+	optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+	train_op = optimizer.minimize(loss)
+	nets.append(net)
+	losses.append(loss)
+	train_ops.append(train_op)
 
 
-for idx,num_neuron in enumerate(HIDDEN_LAYERS):
-	net = tf.contrib.layers.fully_connected(inputs=net,
-										   num_outputs=num_neuron,
-										   activation_fn =None,
-										   trainable=True,
-										   scope = 'fc'+str(idx+1)
-										   )
-	net = activate(net,'sigmoid',name='act_'+str(idx+1))
-
-#The required output is the net
-net_out = net
-
-#Define the losses
-loss = tf.nn.l2_loss(net_out-label)
-
-#Define the optim step
-optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-train_op = optimizer.minimize(loss)
 
 
+
+
+#Initialize the entire graph
 init = tf.global_variables_initializer()
 
 
@@ -111,22 +121,17 @@ for var in tf.global_variables():
 	print (var)
 
 
-
+'''
 with tf.Session() as sess:
 	sess.run(init)
 	start_time = time.time()
 	for i in range(N_ITERATIONS):
 		#xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
 		_,_loss = sess.run([train_op,loss],feed_dict={net_in:xor_in,label:xor_out})
-		
-		with tf.variable_scope("fc1", reuse=True):
-			myvar =tf.get_variable("weights")
-			myvar = tf.get_variable("biases")
-			print(myvar)
 		if i%1000 == 0:
 			print ('Iteration:',i,'Loss',_loss)
 
 	end_time = time.time()
 
 	print('Total Time:',end_time-start_time)
-
+'''
