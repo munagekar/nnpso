@@ -12,6 +12,7 @@ import operator
 import tensorflow as tf
 import time
 import random
+import layers
 
 
 #Dataset Generation for xor
@@ -22,8 +23,8 @@ N_BATCHSIZE = 32
 
 #Parameters for pso
 #TODO: Add batch size and other properties
-N_PARTICLES = 2
-N_ITERATIONS = int(100)
+N_PARTICLES = 4
+N_ITERATIONS = int(1e5)
 LEARNING_RATE = 0.001
 
 
@@ -31,24 +32,10 @@ LEARNING_RATE = 0.001
 #Simple feedforward Network
 
 HIDDEN_LAYERS = [3,2]
-HIDDEN_LAYERS.append(1)
+LAYERS = [N_IN]+HIDDEN_LAYERS+[1]
+print ('The Network Structure is',LAYERS)
 
-#Utility Functions
 
-#Activation Function
-def activate(input_layer,act = 'relu',name='activation'):
-	if act == None:
-		return input_layer
-	if act == 'relu':
-		return tf.nn.relu(input_layer,name)
-	if act =='sqr':
-		return tf.square(input_layer,name)
-	if act == 'sqr_relu':
-		return tf.nn.relu(tf.square(input_layer,name))
-	if act == 'sqr_sigmoid':
-		return tf.nn.sigmoid(tf.square(input_layer,name))
-	if act=='sigmoid':
-		return tf.nn.sigmoid(input_layer,name)
 
 #Xorgenerator Function
 def xor_next_batch(batch_size,n_input):
@@ -81,23 +68,26 @@ label = tf.placeholder(dtype=tf.float32,
 					   shape=[N_BATCHSIZE,1],
 					   name='net_label')
 
+print ('Input & Label Set')
+print ('Starting to Build Network')
+
 ###MULTI-PARTICLE NEURAL NETS
 
 losses = []
 nets = []
 train_ops =[]
 
+
 for pno in range(N_PARTICLES):
 	net = net_in
 
 	for idx,num_neuron in enumerate(HIDDEN_LAYERS):
 		layer_scope = 'pno'+str(pno+1)+'fc'+str(idx+1)
-		net = tf.contrib.layers.fully_connected(inputs=net,
-											    num_outputs=num_neuron,
-											    activation_fn =None,
-											    trainable=True,
-											    scope = layer_scope)
-		net = activate(net,'sigmoid',name='act_'+layer_scope)
+		net,w,b = layers.fc(input_tensor=net,
+						n_output_units =num_neuron,
+						activation_fn='sigmoid',
+						scope = layer_scope,
+						uniform = False)
 
 	#Define loss for each of the particle nets
 	loss = tf.nn.l2_loss(net - label)
@@ -110,28 +100,34 @@ for pno in range(N_PARTICLES):
 
 
 
-
+print('Network Build Successful')
 
 
 #Initialize the entire graph
 init = tf.global_variables_initializer()
+print ('Graph Init Successful')
 
 
-for var in tf.global_variables():
-	print (var)
+#for var in tf.global_variables():
+#	print (var)
 
 
-'''
+
+req_list = losses + train_ops
+
+
+
 with tf.Session() as sess:
 	sess.run(init)
 	start_time = time.time()
 	for i in range(N_ITERATIONS):
 		#xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
-		_,_loss = sess.run([train_op,loss],feed_dict={net_in:xor_in,label:xor_out})
-		if i%1000 == 0:
-			print ('Iteration:',i,'Loss',_loss)
+		dict_out= sess.run(req_list,feed_dict={net_in:xor_in,label:xor_out})
+		
+		if i%10000 == 0:
+			_losses = dict_out[:len(dict_out)//2]
+			print ('Losses:',_losses,'Iteration:',i)
 
 	end_time = time.time()
 
 	print('Total Time:',end_time-start_time)
-'''
