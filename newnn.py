@@ -75,28 +75,34 @@ print('Starting to Build Network')
 
 losses = []
 nets = []
-train_ops = []
+weights = []
+biases = []
+pweights = []
+pbiases = []
+vweights = []
+vbiases = []
 
 
+# TODO:Parellized the following loop
 for pno in range(N_PARTICLES):
     net = net_in
 
     for idx, num_neuron in enumerate(HIDDEN_LAYERS):
         layer_scope = 'pno' + str(pno + 1) + 'fc' + str(idx + 1)
-        net, w, b, pw, pb, vw, vb = layers.fc(input_tensor=net,
-                                              n_output_units=num_neuron,
-                                              activation_fn='sigmoid',
-                                              scope=layer_scope,
-                                              uniform=False)
+        net, w, b, pw, pb, pf, vw, vb = layers.fc(input_tensor=net,
+                                                  n_output_units=num_neuron,
+                                                  activation_fn='sigmoid',
+                                                  scope=layer_scope,
+                                                  uniform=True)
 
     # Define loss for each of the particle nets
     loss = tf.nn.l2_loss(net - label)
-    # Define an optimizer for the particle nets
-    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-    train_op = optimizer.minimize(loss)
+    # Update the lists
     nets.append(net)
     losses.append(loss)
-    train_ops.append(train_op)
+    weights.append(w)
+    biases.append(b)
+    print('Building Net:', pno + 1)
 
 
 print('Network Build Successful')
@@ -106,12 +112,11 @@ print('Network Build Successful')
 init = tf.global_variables_initializer()
 print('Graph Init Successful')
 
+for var in tf.global_variables():
+    print(var)
 
-# for var in tf.global_variables():
-#	print (var)
 
-
-req_list = losses + train_ops
+req_list = losses
 
 
 with tf.Session() as sess:
@@ -123,7 +128,7 @@ with tf.Session() as sess:
                             net_in: xor_in, label: xor_out})
 
         if i % 10000 == 0:
-            _losses = dict_out[:len(dict_out) // 2]
+            _losses = dict_out
             print('Losses:', _losses, 'Iteration:', i)
 
     end_time = time.time()
