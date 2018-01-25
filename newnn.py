@@ -23,7 +23,7 @@ N_BATCHSIZE = 32
 
 # Parameters for pso
 # TODO: Add batch size and other properties
-N_PARTICLES = 4
+N_PARTICLES = 1
 N_ITERATIONS = int(1e5)
 P_BEST_FACTOR = 2
 G_BEST_FACTOR = 2
@@ -71,7 +71,7 @@ label = tf.placeholder(dtype=tf.float32,
                        shape=[N_BATCHSIZE, 1],
                        name='net_label')
 
-print('Input & Label Set')
+
 print('Starting to Build Network')
 
 # MULTI-PARTICLE NEURAL NETS
@@ -87,7 +87,7 @@ vbiases = []
 
 # Fixed Constant
 
-
+# NOTE:Graph Isn't initialized Properly Needsd to be fixed
 # TODO:Parellized the following loop
 for pno in range(N_PARTICLES):
     net = net_in
@@ -99,22 +99,22 @@ for pno in range(N_PARTICLES):
                                                   activation_fn='sigmoid',
                                                   scope=layer_scope,
                                                   uniform=True)
+        with tf.variable_scope(layer_scope, reuse=False):
+            # Constants & Other Random Variables
+            pbestrand = tf.Variable(tf.random_uniform(shape=[],
+                                                      maxval=P_BEST_FACTOR),
+                                    name='pbestrand')
 
-        # Constants & Other Random Variables
-        pbestrand = tf.random_uniform(shape=[],
-                                      maxval=P_BEST_FACTOR,
-                                      name=layer_scope + 'pbestrand')
-
-        gbestrand = tf.random_uniform(shape=[],
-                                      maxval=G_BEST_FACTOR,
-                                      name=layer_scope + 'gbestrand')
+            gbestrand = tf.Variable(tf.random_uniform(shape=[],
+                                                      maxval=G_BEST_FACTOR),
+                                    name='gbestrand')
 
         # Multiply by the Velocity Decay
         nextvw = tf.multiply(vw, VELOCITY_DECAY)
-        nexvb = tf.multiply(vb, VELOCITY_DECAY)
+        nextvb = tf.multiply(vb, VELOCITY_DECAY)
         # Differences between Particle Best & Current
-        pdiffw = tf.subtract(pw, w)
-        pdiffb = tf.subtract(pb, b)
+        pdiffw = tf.multiply(tf.subtract(pw, w), pbestrand)
+        pdiffb = tf.multiply(tf.subtract(pb, b), pbestrand)
         # Define & Reuse the GBest
         with tf.variable_scope("gbest", reuse=tf.AUTO_REUSE):
             gw = tf.get_variable(name='fc' + str(idx + 1) + 'w',
@@ -124,6 +124,14 @@ for pno in range(N_PARTICLES):
             gb = tf.get_variable(name='fc' + str(idx + 1) + 'b',
                                  shape=[LAYERS[idx + 1]],
                                  initializer=tf.zeros_initializer)
+
+        # Differences between Global Best & Current
+        gdiffw = tf.multiply(tf.subtract(gw, w), gbestrand)
+        gdiffb = tf.multiply(tf.subtract(gb, b), gbestrand)
+        vw = tf.add_n([nextvw, pdiffw, gdiffw])
+        vb = tf.add_n([nextvb, pdiffb, gdiffb])
+        w = tf.add(w, vw)
+        b = tf.add(b, vb)
 
     # Define loss for each of the particle nets
     loss = tf.nn.l2_loss(net - label)
@@ -138,7 +146,7 @@ print('Network Build Successful')
 
 # Initialize the entire graph
 init = tf.global_variables_initializer()
-print('Graph Init Successful')
+print('Graph Init Successful:')
 
 for var in tf.global_variables():
     print(var)
