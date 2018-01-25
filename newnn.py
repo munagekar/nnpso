@@ -25,7 +25,10 @@ N_BATCHSIZE = 32
 # TODO: Add batch size and other properties
 N_PARTICLES = 4
 N_ITERATIONS = int(1e5)
-LEARNING_RATE = 0.001
+P_BEST_FACTOR = 2
+G_BEST_FACTOR = 2
+# Velocity Decay specifies the multiplier for the velocity update
+VELOCITY_DECAY = 1.0
 
 
 # Basic Neural Network Definition
@@ -82,12 +85,14 @@ pbiases = []
 vweights = []
 vbiases = []
 
+# Fixed Constant
+
 
 # TODO:Parellized the following loop
 for pno in range(N_PARTICLES):
     net = net_in
 
-    for idx, num_neuron in enumerate(HIDDEN_LAYERS):
+    for idx, num_neuron in enumerate(LAYERS[1:]):
         layer_scope = 'pno' + str(pno + 1) + 'fc' + str(idx + 1)
         net, w, b, pw, pb, pf, vw, vb = layers.fc(input_tensor=net,
                                                   n_output_units=num_neuron,
@@ -95,13 +100,36 @@ for pno in range(N_PARTICLES):
                                                   scope=layer_scope,
                                                   uniform=True)
 
+        # Constants & Other Random Variables
+        pbestrand = tf.random_uniform(shape=[],
+                                      maxval=P_BEST_FACTOR,
+                                      name=layer_scope + 'pbestrand')
+
+        gbestrand = tf.random_uniform(shape=[],
+                                      maxval=G_BEST_FACTOR,
+                                      name=layer_scope + 'gbestrand')
+
+        # Multiply by the Velocity Decay
+        nextvw = tf.multiply(vw, VELOCITY_DECAY)
+        nexvb = tf.multiply(vb, VELOCITY_DECAY)
+        # Differences between Particle Best & Current
+        pdiffw = tf.subtract(pw, w)
+        pdiffb = tf.subtract(pb, b)
+        # Define & Reuse the GBest
+        with tf.variable_scope("gbest", reuse=tf.AUTO_REUSE):
+            gw = tf.get_variable(name='fc' + str(idx + 1) + 'w',
+                                 shape=[LAYERS[idx], LAYERS[idx + 1]],
+                                 initializer=tf.zeros_initializer)
+
+            gb = tf.get_variable(name='fc' + str(idx + 1) + 'b',
+                                 shape=[LAYERS[idx + 1]],
+                                 initializer=tf.zeros_initializer)
+
     # Define loss for each of the particle nets
     loss = tf.nn.l2_loss(net - label)
     # Update the lists
     nets.append(net)
     losses.append(loss)
-    weights.append(w)
-    biases.append(b)
     print('Building Net:', pno + 1)
 
 
