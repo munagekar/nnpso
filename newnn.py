@@ -24,12 +24,12 @@ N_BATCHSIZE = 32
 
 # Parameters for pso
 # TODO: Add batch size and other properties
-N_PARTICLES = 1
-N_ITERATIONS = int(3)
-P_BEST_FACTOR = 2
-G_BEST_FACTOR = 2
+N_PARTICLES = 64
+N_ITERATIONS = int(1000)
+P_BEST_FACTOR = 0.05
+G_BEST_FACTOR = 0.05
 # Velocity Decay specifies the multiplier for the velocity update
-VELOCITY_DECAY = 1.0
+VELOCITY_DECAY = 0.999
 t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
                                dtype=tf.float32,
                                name='vel_decay')
@@ -82,8 +82,6 @@ print('Starting to Build Network')
 
 losses = []
 nets = []
-weights = []
-biases = []
 pweights = []
 pbiases = []
 vweights = []
@@ -99,16 +97,25 @@ weight_updates = []
 vweight_updates = []
 vbias_updates = []
 
-# Global Best Fitness
-gfit = tf.Variable(math.inf,name='gbestfit')
+# Fitness Updates
+fit_updates = []
 
-# NOTE:Graph Isn't initialized Properly Needsd to be fixed
+# Global Best
+gweights = []
+gbiases = []
+gfit = tf.Variable(math.inf, name='gbestfit')
+
 # TODO:Parellized the following loop
+# TODO:See if the Conditional Function Lambdas can be optimized
 for pno in range(N_PARTICLES):
+    weights = []
+    biases = []
+    pweights = []
+    pbiases = []
     pbestrand = tf.Variable(tf.random_uniform(
         shape=[], maxval=P_BEST_FACTOR), name='pno' + str(pno + 1) + 'pbestrand')
     gbestrand = tf.Variable(tf.random_uniform(
-        shape=[], maxval=G_BEST_FACTOR), name='pno' + str(pno+ 1) + 'gbestrand')
+        shape=[], maxval=G_BEST_FACTOR), name='pno' + str(pno + 1) + 'gbestrand')
     # Append the random values so that the initializer can be called again
     random_values.append(pbestrand)
     random_values.append(gbestrand)
@@ -116,25 +123,20 @@ for pno in range(N_PARTICLES):
 
     net = net_in
     # Define the parameters
-    w = None
-    b = None
-    pw = None
-    pb = None
-    vw = None
-    vb = None
-    gw = None
-    gb = None
+
     for idx, num_neuron in enumerate(LAYERS[1:]):
         layer_scope = 'pno' + str(pno + 1) + 'fc' + str(idx + 1)
         net, w, b, pw, pb, vw, vb = layers.fc(input_tensor=net,
                                               n_output_units=num_neuron,
                                               activation_fn='sigmoid',
                                               scope=layer_scope,
-                                              uniform=True)
+                                              uniform=False)
         vweights.append(vw)
         vbiases.append(vb)
         weights.append(w)
         biases.append(b)
+        pweights.append(pw)
+        pbiases.append(pb)
 
         # Multiply by the Velocity Decay
         nextvw = tf.multiply(vw, t_VELOCITY_DECAY)
@@ -144,6 +146,8 @@ for pno in range(N_PARTICLES):
         pdiffw = tf.multiply(tf.subtract(pw, w), pbestrand)
         pdiffb = tf.multiply(tf.subtract(pb, b), pbestrand)
         # Define & Reuse the GBest
+        gw = None
+        gb = None
         with tf.variable_scope("gbest", reuse=tf.AUTO_REUSE):
             gw = tf.get_variable(name='fc' + str(idx + 1) + 'w',
                                  shape=[LAYERS[idx], LAYERS[idx + 1]],
@@ -152,6 +156,11 @@ for pno in range(N_PARTICLES):
             gb = tf.get_variable(name='fc' + str(idx + 1) + 'b',
                                  shape=[LAYERS[idx + 1]],
                                  initializer=tf.zeros_initializer)
+
+        # If first Particle add to Global Else it is already present
+        if pno == 0:
+            gweights.append(gw)
+            gbiases.append(gb)
 
         # Differences between Global Best & Current
         gdiffw = tf.multiply(tf.subtract(gw, w), gbestrand)
@@ -172,6 +181,38 @@ for pno in range(N_PARTICLES):
 
     # Define loss for each of the particle nets
     loss = tf.nn.l2_loss(net - label)
+    particlebest = tf.cond(loss < pfit, lambda: loss, lambda: pfit)
+    fit_update = tf.assign(pfit, particlebest, validate_shape=True)
+    fit_updates.append(fit_update)
+    globalbest = tf.cond(loss < gfit, lambda: loss, lambda: gfit)
+    fit_update = tf.assign(gfit, globalbest, validate_shape=True)
+    fit_updates.append(fit_update)
+
+    # Multiple Length Checks
+    assert len(weights) == len(biases)
+    assert len(gweights) == len(gbiases)
+    assert len(pweights) == len(pbiases)
+    assert len(gweights) == len(weights)
+    assert len(pweights) == len(weights)
+
+    for i in range(len(weights)):
+        #Particle Best
+        pweight = tf.cond(loss < pfit, lambda: weights[i], lambda: pweights[i])
+        fit_update = tf.assign(pweights[i], pweight, validate_shape=True)
+        fit_updates.append(fit_update)
+        pbias = tf.cond(loss<pfit, lambda:biases[i],lambda:pbiases[i])
+        fit_update = tf.assign(pbiases[i],pbias,validate_shape=True)
+        fit_updates.append(fit_update)
+
+        #Global Best
+        gweight = tf.cond(loss < gfit, lambda: weights[i], lambda: gweights[i])
+        fit_update = tf.assign(gweights[i], gweight, validate_shape=True)
+        fit_updates.append(fit_update)
+        gbias = tf.cond(loss<gfit, lambda:biases[i],lambda:gbiases[i])
+        fit_update = tf.assign(gbiases[i],gbias,validate_shape=True)
+        fit_updates.append(fit_update)
+
+
     # Update the lists
     nets.append(net)
     losses.append(loss)
@@ -179,6 +220,8 @@ for pno in range(N_PARTICLES):
 
 
 print('Network Build Successful')
+print("Number of Random Values:", len(random_values))
+print("Number of Fitness Updates:", len(fit_updates))
 
 
 # Initialize the entire graph
@@ -188,12 +231,12 @@ print('Graph Init Successful:')
 for var in tf.global_variables():
     print(var)
 
-req_list = weights
+
 # Define the updates which are to be done before each iterations
 random_updates = [r.initializer for r in random_values]
 updates = weight_updates + bias_updates + \
-    random_updates + vbias_updates + vweight_updates
-
+    random_updates + vbias_updates + vweight_updates + fit_updates
+req_list = losses, updates,gfit,gbiases
 
 with tf.Session() as sess:
     sess.run(init)
@@ -203,14 +246,14 @@ with tf.Session() as sess:
     start_time = time.time()
     for i in range(N_ITERATIONS):
         # Reinitialize the Random Values at each iteration
-        sess.run(updates)
 
         # xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
-        dict_out = sess.run(req_list, feed_dict={
-                            net_in: xor_in, label: xor_out})
+        dict_out, _ ,gfit,gbiases= sess.run(req_list, feed_dict={
+            net_in: xor_in, label: xor_out})
 
         _losses = dict_out
         print('Losses:', _losses, 'Iteration:', i)
+        print('Gfit:',gfit,':',gbiases)
 
     end_time = time.time()
     # Close the writer
