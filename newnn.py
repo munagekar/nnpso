@@ -13,6 +13,7 @@ import tensorflow as tf
 import time
 import random
 import layers
+import math
 
 
 # Dataset Generation for xor
@@ -28,7 +29,7 @@ N_ITERATIONS = int(3)
 P_BEST_FACTOR = 2
 G_BEST_FACTOR = 2
 # Velocity Decay specifies the multiplier for the velocity update
-VELOCITY_DECAY = 0.5
+VELOCITY_DECAY = 1.0
 t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
                                dtype=tf.float32,
                                name='vel_decay')
@@ -87,17 +88,32 @@ pweights = []
 pbiases = []
 vweights = []
 vbiases = []
-ovbiases = []
+
 random_values = []
+
+# Positional Updates
 bias_updates = []
 weight_updates = []
-nextvbs = []
 
-# Fixed Constant
+# Velocity Updates
+vweight_updates = []
+vbias_updates = []
+
+# Global Best Fitness
+gfit = tf.Variable(math.inf,name='gbestfit')
 
 # NOTE:Graph Isn't initialized Properly Needsd to be fixed
 # TODO:Parellized the following loop
 for pno in range(N_PARTICLES):
+    pbestrand = tf.Variable(tf.random_uniform(
+        shape=[], maxval=P_BEST_FACTOR), name='pno' + str(pno + 1) + 'pbestrand')
+    gbestrand = tf.Variable(tf.random_uniform(
+        shape=[], maxval=G_BEST_FACTOR), name='pno' + str(pno+ 1) + 'gbestrand')
+    # Append the random values so that the initializer can be called again
+    random_values.append(pbestrand)
+    random_values.append(gbestrand)
+    pfit = tf.Variable(math.inf, name='pno' + str(pno + 1) + 'fit')
+
     net = net_in
     # Define the parameters
     w = None
@@ -110,26 +126,15 @@ for pno in range(N_PARTICLES):
     gb = None
     for idx, num_neuron in enumerate(LAYERS[1:]):
         layer_scope = 'pno' + str(pno + 1) + 'fc' + str(idx + 1)
-        net, w, b, pw, pb, pf, vw, vb = layers.fc(input_tensor=net,
-                                                  n_output_units=num_neuron,
-                                                  activation_fn='sigmoid',
-                                                  scope=layer_scope,
-                                                  uniform=True)
+        net, w, b, pw, pb, vw, vb = layers.fc(input_tensor=net,
+                                              n_output_units=num_neuron,
+                                              activation_fn='sigmoid',
+                                              scope=layer_scope,
+                                              uniform=True)
         vweights.append(vw)
         vbiases.append(vb)
         weights.append(w)
         biases.append(b)
-        with tf.variable_scope(layer_scope, reuse=False):
-            # Constants & Other Random Variables
-            pbestrand = tf.Variable(tf.random_uniform(shape=[],
-                                                      maxval=P_BEST_FACTOR),
-                                    name='pbestrand')
-
-            gbestrand = tf.Variable(tf.random_uniform(shape=[],
-                                                      maxval=G_BEST_FACTOR),
-                                    name='gbestrand')
-            random_values.append(pbestrand)
-            random_values.append(gbestrand)
 
         # Multiply by the Velocity Decay
         nextvw = tf.multiply(vw, t_VELOCITY_DECAY)
@@ -151,10 +156,15 @@ for pno in range(N_PARTICLES):
         # Differences between Global Best & Current
         gdiffw = tf.multiply(tf.subtract(gw, w), gbestrand)
         gdiffb = tf.multiply(tf.subtract(gb, b), gbestrand)
-        vw = nextvw + pdiffw + gdiffw
-        vb = nextvb + pdiffb + gdiffb
 
-
+        vweight_update = tf.assign(vw,
+                                   tf.add_n([nextvw, pdiffw, gdiffw]),
+                                   validate_shape=True)
+        vweight_updates.append(vweight_update)
+        vbias_update = tf.assign(vb,
+                                 tf.add_n([nextvb, pdiffb, gdiffb]),
+                                 validate_shape=True)
+        vbias_updates.append(vbias_update)
         weight_update = tf.assign(w, w + vw, validate_shape=True)
         weight_updates.append(weight_update)
         bias_update = tf.assign(b, b + vb, validate_shape=True)
@@ -181,27 +191,21 @@ for var in tf.global_variables():
 req_list = weights
 # Define the updates which are to be done before each iterations
 random_updates = [r.initializer for r in random_values]
-updates = weight_updates + bias_updates + random_updates
+updates = weight_updates + bias_updates + \
+    random_updates + vbias_updates + vweight_updates
 
-print('Hello')
-for x, y in zip(vbiases, ovbiases):
-    if x is y:
-        print('Okay')
-    else:
-        print('Not Okay')
 
 with tf.Session() as sess:
     sess.run(init)
 
     # Write The graph summary
-    summary_writer = tf.summary.FileWriter(
-        '/tmp/tf/logs', sess.graph_def)
+    summary_writer = tf.summary.FileWriter('/tmp/tf/logs', sess.graph_def)
     start_time = time.time()
     for i in range(N_ITERATIONS):
         # Reinitialize the Random Values at each iteration
         sess.run(updates)
 
-        #xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
+        # xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
         dict_out = sess.run(req_list, feed_dict={
                             net_in: xor_in, label: xor_out})
 
@@ -213,4 +217,3 @@ with tf.Session() as sess:
     summary_writer.close()
 
     print('Total Time:', end_time - start_time)
-
