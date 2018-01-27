@@ -43,7 +43,7 @@ def fc(input_tensor, n_output_units, scope, activation_fn='relu', uniform=False)
         # Particle Best
         pbest_w = tf.Variable(weights.initialized_value(), name='pbest_w')
         pbest_b = tf.Variable(biases.initialized_value(), name='pbest_b')
-        pbest_fit = tf.Variable(math.inf,name='pbest_fit')
+        pbest_fit = tf.Variable(math.inf, name='pbest_fit')
         # Velocities
         vel_weights = tf.Variable(tf.random_uniform(
             shape=shape,
@@ -58,4 +58,4 @@ def fc(input_tensor, n_output_units, scope, activation_fn='relu', uniform=False)
         act = tf.matmul(input_tensor, weights) + biases
 
         # Activate And Return
-        return activate(act, activation_fn), weights, biases, pbest_w, pbest_b, pbest_fit, vel_weights, vel_biases,
+        return activate(act, activation_fn), weights, biases, pbest_w, pbest_b, vel_weights, vel_biases
