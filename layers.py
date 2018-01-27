@@ -43,15 +43,18 @@ def fc(input_tensor, n_output_units, scope, activation_fn='relu', uniform=False)
         # Particle Best
         pbest_w = tf.Variable(weights.initialized_value(), name='pbest_w')
         pbest_b = tf.Variable(biases.initialized_value(), name='pbest_b')
-        pbest_fit = tf.Variable(math.inf, name='pbest_fit')
         # Velocities
         vel_weights = tf.Variable(tf.random_uniform(
             shape=shape,
-            dtype=tf.float32),
+            dtype=tf.float32,
+            minval =0,
+            maxval = 0.001),
             name='vel_weights')
         vel_biases = tf.Variable(tf.random_uniform(
             shape=[n_output_units],
-            dtype=tf.float32),
+            dtype=tf.float32,
+            minval = 0,
+            maxval = 0.001),
             name='vel_biases')
 
         # Perform actual feedforward
