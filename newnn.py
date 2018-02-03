@@ -24,13 +24,14 @@ N_BATCHSIZE = 32
 
 # Parameters for pso
 # TODO: Add batch size and other properties
-N_PARTICLES = 256
+N_PARTICLES = 32
 N_ITERATIONS = int(40000)
 P_BEST_FACTOR = 2
 G_BEST_FACTOR = 2
 
 # Velocity Decay specifies the multiplier for the velocity update
 VELOCITY_DECAY = 1
+# Velocity Restrict is computationally slightly more expensive
 VELOCITY_RESTRICT = True
 MAX_VEL = 0.001
 t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
@@ -178,15 +179,30 @@ for pno in range(N_PARTICLES):
                                        tf.maximum(
                                            tf.minimum(
                                                tf.add_n(
-                                                   [nextvw, pdiffw, gdiffw]),
-                                               MAX_VEL), -MAX_VEL
+                                                   [nextvw, pdiffw, gdiffw]
+                                               ),
+                                               MAX_VEL),
+                                           -MAX_VEL
                                        ),
                                        validate_shape=True)
 
         vweight_updates.append(vweight_update)
-        vbias_update = tf.assign(vb,
-                                 tf.add_n([nextvb, pdiffb, gdiffb]),
-                                 validate_shape=True)
+        vbias_update = None
+        if VELOCITY_RESTRICT == False:
+            vbias_update = tf.assign(vb,
+                                     tf.add_n([nextvb, pdiffb, gdiffb]),
+                                     validate_shape=True)
+        else:
+            vbias_update = tf.assign(vb,
+                                     tf.minimum(
+                                         tf.maximum(
+                                             tf.add_n(
+                                                 [nextvb, pdiffb, gdiffb]
+                                             ),
+                                             -MAX_VEL),
+                                         MAX_VEL
+                                     ),
+                                     validate_shape=True)
         vbias_updates.append(vbias_update)
         weight_update = tf.assign(w, w + vw, validate_shape=True)
         weight_updates.append(weight_update)
