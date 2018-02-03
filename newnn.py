@@ -169,14 +169,19 @@ for pno in range(N_PARTICLES):
         gdiffw = tf.multiply(tf.subtract(gw, w), gbestrand)
         gdiffb = tf.multiply(tf.subtract(gb, b), gbestrand)
         vweight_update = None
-        if VELOCITY_RESTRICT==False:
+        if VELOCITY_RESTRICT == False:
             vweight_update = tf.assign(vw,
-                                   tf.add_n([nextvw, pdiffw, gdiffw]),
-                                   validate_shape=True)
+                                       tf.add_n([nextvw, pdiffw, gdiffw]),
+                                       validate_shape=True)
         else:
             vweight_update = tf.assign(vw,
-                                   tf.maximum(tf.add_n([nextvw, pdiffw, gdiffw]),MAX_VEL),
-                                   validate_shape=True)            
+                                       tf.maximum(
+                                           tf.minimum(
+                                               tf.add_n(
+                                                   [nextvw, pdiffw, gdiffw]),
+                                               MAX_VEL), -MAX_VEL
+                                       ),
+                                       validate_shape=True)
 
         vweight_updates.append(vweight_update)
         vbias_update = tf.assign(vb,
@@ -205,22 +210,21 @@ for pno in range(N_PARTICLES):
     assert len(pweights) == len(weights)
 
     for i in range(len(weights)):
-        #Particle Best
+        # Particle Best
         pweight = tf.cond(loss < pfit, lambda: weights[i], lambda: pweights[i])
         fit_update = tf.assign(pweights[i], pweight, validate_shape=True)
         fit_updates.append(fit_update)
-        pbias = tf.cond(loss<pfit, lambda:biases[i],lambda:pbiases[i])
-        fit_update = tf.assign(pbiases[i],pbias,validate_shape=True)
+        pbias = tf.cond(loss < pfit, lambda: biases[i], lambda: pbiases[i])
+        fit_update = tf.assign(pbiases[i], pbias, validate_shape=True)
         fit_updates.append(fit_update)
 
-        #Global Best
+        # Global Best
         gweight = tf.cond(loss < gfit, lambda: weights[i], lambda: gweights[i])
         fit_update = tf.assign(gweights[i], gweight, validate_shape=True)
         fit_updates.append(fit_update)
-        gbias = tf.cond(loss<gfit, lambda:biases[i],lambda:gbiases[i])
-        fit_update = tf.assign(gbiases[i],gbias,validate_shape=True)
+        gbias = tf.cond(loss < gfit, lambda: biases[i], lambda: gbiases[i])
+        fit_update = tf.assign(gbiases[i], gbias, validate_shape=True)
         fit_updates.append(fit_update)
-
 
     # Update the lists
     nets.append(net)
@@ -245,7 +249,7 @@ for var in tf.global_variables():
 random_updates = [r.initializer for r in random_values]
 updates = weight_updates + bias_updates + \
     random_updates + vbias_updates + vweight_updates + fit_updates
-req_list = losses, updates,gfit,gbiases,vweights,vbiases,gweights
+req_list = losses, updates, gfit, gbiases, vweights, vbiases, gweights
 
 with tf.Session() as sess:
     sess.run(init)
@@ -257,12 +261,12 @@ with tf.Session() as sess:
         # Reinitialize the Random Values at each iteration
 
         # xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
-        dict_out, _ ,gfit,gbiases,vweights,vbiases,gweights= sess.run(req_list, feed_dict={
+        dict_out, _, gfit, gbiases, vweights, vbiases, gweights = sess.run(req_list, feed_dict={
             net_in: xor_in, label: xor_out})
 
         _losses = dict_out
         print('Losses:', _losses, 'Iteration:', i)
-        print('Gfit:',gfit)
+        print('Gfit:', gfit)
         '''
         print('gweights:',gweights)
         print('gbiases:',gbiases)
