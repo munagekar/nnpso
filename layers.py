@@ -28,7 +28,9 @@ def fc(input_tensor, n_output_units, scope, activation_fn='relu', uniform=False)
         if uniform:
             weights = tf.Variable(tf.random_uniform(
                 shape=shape,
-                dtype=tf.float32),
+                dtype=tf.float32,
+                minval=-10,
+                maxval=10),
                 name='weights')
         else:
             weights = tf.Variable(tf.truncated_normal(
@@ -47,14 +49,14 @@ def fc(input_tensor, n_output_units, scope, activation_fn='relu', uniform=False)
         vel_weights = tf.Variable(tf.random_uniform(
             shape=shape,
             dtype=tf.float32,
-            minval =0,
-            maxval = 0.001),
+            minval=-0.001,
+            maxval=0.001),
             name='vel_weights')
         vel_biases = tf.Variable(tf.random_uniform(
             shape=[n_output_units],
             dtype=tf.float32,
-            minval = 0,
-            maxval = 0.001),
+            minval=-0.001,
+            maxval=0.001),
             name='vel_biases')
 
         # Perform actual feedforward

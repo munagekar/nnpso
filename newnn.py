@@ -25,8 +25,8 @@ N_BATCHSIZE = 32
 # Parameters for pso
 # TODO: Add batch size and other properties
 N_PARTICLES = 32
-N_ITERATIONS = int(40000)
-P_BEST_FACTOR = 2
+N_ITERATIONS = int(60000)
+P_BEST_FACTOR = 1.5
 G_BEST_FACTOR = 2
 
 # Velocity Decay specifies the multiplier for the velocity update
@@ -34,9 +34,13 @@ VELOCITY_DECAY = 1
 # Velocity Restrict is computationally slightly more expensive
 VELOCITY_RESTRICT = True
 MAX_VEL = 0.001
+MAX_VEL_DECAY = 1
 t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
                                dtype=tf.float32,
                                name='vel_decay')
+t_MVEL = tf.Variable(MAX_VEL,
+                     dtype=tf.float32,
+                     name='vel_restrict')
 
 
 # Basic Neural Network Definition
@@ -104,6 +108,10 @@ vbias_updates = []
 # Fitness Updates
 fit_updates = []
 
+# Control Updates - Controling PSO inside tf.Graph
+control_updates = []
+
+
 # Global Best
 gweights = []
 gbiases = []
@@ -134,7 +142,7 @@ for pno in range(N_PARTICLES):
                                               n_output_units=num_neuron,
                                               activation_fn='sigmoid',
                                               scope=layer_scope,
-                                              uniform=False)
+                                              uniform=True)
         vweights.append(vw)
         vbiases.append(vb)
         weights.append(w)
@@ -181,8 +189,8 @@ for pno in range(N_PARTICLES):
                                                tf.add_n(
                                                    [nextvw, pdiffw, gdiffw]
                                                ),
-                                               MAX_VEL),
-                                           -MAX_VEL
+                                               t_MVEL),
+                                           -t_MVEL
                                        ),
                                        validate_shape=True)
 
@@ -199,8 +207,8 @@ for pno in range(N_PARTICLES):
                                              tf.add_n(
                                                  [nextvb, pdiffb, gdiffb]
                                              ),
-                                             -MAX_VEL),
-                                         MAX_VEL
+                                             -t_MVEL),
+                                         t_MVEL
                                      ),
                                      validate_shape=True)
         vbias_updates.append(vbias_update)
@@ -217,7 +225,9 @@ for pno in range(N_PARTICLES):
     globalbest = tf.cond(loss < gfit, lambda: loss, lambda: gfit)
     fit_update = tf.assign(gfit, globalbest, validate_shape=True)
     fit_updates.append(fit_update)
-
+    control_update = tf.assign(t_MVEL, tf.multiply(t_MVEL, MAX_VEL_DECAY),
+                               validate_shape=True)
+    control_updates.append(control_update)
     # Multiple Length Checks
     assert len(weights) == len(biases)
     assert len(gweights) == len(gbiases)
@@ -264,7 +274,7 @@ for var in tf.global_variables():
 # Define the updates which are to be done before each iterations
 random_updates = [r.initializer for r in random_values]
 updates = weight_updates + bias_updates + \
-    random_updates + vbias_updates + vweight_updates + fit_updates
+    random_updates + vbias_updates + vweight_updates + fit_updates + control_updates
 req_list = losses, updates, gfit, gbiases, vweights, vbiases, gweights
 
 with tf.Session() as sess:
