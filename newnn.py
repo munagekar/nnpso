@@ -25,9 +25,9 @@ N_BATCHSIZE = 32
 # Parameters for pso
 # TODO: Add batch size and other properties
 N_PARTICLES = 32
-N_ITERATIONS = int(60000)
-P_BEST_FACTOR = 1.5
-G_BEST_FACTOR = 2
+N_ITERATIONS = int(70000)
+P_BEST_FACTOR = 0.6
+G_BEST_FACTOR = 0.8
 
 # Velocity Decay specifies the multiplier for the velocity update
 VELOCITY_DECAY = 1
@@ -41,6 +41,11 @@ t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
 t_MVEL = tf.Variable(MAX_VEL,
                      dtype=tf.float32,
                      name='vel_restrict')
+
+
+# HYBRID Controls
+HYBRID = True
+learning_rate = 0.01
 
 
 # Basic Neural Network Definition
@@ -110,6 +115,9 @@ fit_updates = []
 
 # Control Updates - Controling PSO inside tf.Graph
 control_updates = []
+
+# Hybrid Updates - Using of PSO + Traditional Approaches
+hybrid_updates = []
 
 
 # Global Best
@@ -228,6 +236,11 @@ for pno in range(N_PARTICLES):
     control_update = tf.assign(t_MVEL, tf.multiply(t_MVEL, MAX_VEL_DECAY),
                                validate_shape=True)
     control_updates.append(control_update)
+    if HYBRID:
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        hybrid_update = optimizer.minimize(loss)
+        hybrid_updates.append(hybrid_update)
+
     # Multiple Length Checks
     assert len(weights) == len(biases)
     assert len(gweights) == len(gbiases)
@@ -274,7 +287,8 @@ for var in tf.global_variables():
 # Define the updates which are to be done before each iterations
 random_updates = [r.initializer for r in random_values]
 updates = weight_updates + bias_updates + \
-    random_updates + vbias_updates + vweight_updates + fit_updates + control_updates
+    random_updates + vbias_updates + vweight_updates + \
+    fit_updates + control_updates + hybrid_updates
 req_list = losses, updates, gfit, gbiases, vweights, vbiases, gweights
 
 with tf.Session() as sess:
