@@ -35,7 +35,7 @@ Thus we propose a new hybrid approach one that scales up crazy parallely. Partic
  -Number of Iterations: Until you get bored.
 
 # Training Neural Network only with PSO
-Not that a great idea. Current testing based on fully convolution networks, training with only PSO isn't a sufficient. Works great for Initializations
+Not that a great idea. Current testing based on fully connected networks, training with only PSO isn't a sufficient. Works great for Initializations
 
 # Training with Hybrid Approach
 Way to go. Faster than traditional approaches if you have sufficient power.
