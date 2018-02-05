@@ -30,9 +30,9 @@ Thus we propose a new hybrid approach one that scales up crazy parallely. Partic
  - Velocity Decay: Velocity Decay is best between 0.75 -1. The decay prevents the network weights going too far away.
  - Velocity Max : Maximum velocity for a particle along a dimension. It useful to prevent network from seeing a pendulum effect.
  - Velocity Max Decay : It is a good idea to have the velocity max go down with iteration for finer control especially if you are not using the hybrid approach
- -Learning Rate: A much higher learning rate can be used with hybrid approach for learning weights.
- -Number of Particles : The more the merrier. As much as your GPU can support
- -Number of Iterations: Until you get bored.
+ - Learning Rate: A much higher learning rate can be used with hybrid approach for learning weights.
+ - Number of Particles : The more the merrier. As much as your GPU can support
+ - Number of Iterations: Until you get bored.
 
 # Training Neural Network only with PSO
 Not that a great idea. Current testing based on fully connected networks, training with only PSO isn't a sufficient. Works great for Initializations
