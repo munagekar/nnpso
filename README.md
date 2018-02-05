@@ -53,4 +53,6 @@ While using traditional approaches we get stuck up 50% of the times with a learn
 
 # Future Work
  - Tryping out other PSO variants
+ - Working on Argparse for CLI
+ - GUI for Visualization
 
