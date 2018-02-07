@@ -17,15 +17,25 @@ import math
 import argparse
 
 
-# Dataset Generation for xor
-
+#XOR Dataset Params
 N_IN = 5
-N_BATCHSIZE = 32
-
-# Begining of Parser Utilities
+N_BATCHSIZE = 1
 
 
-def intg1(value):
+#PSO params
+N_PARTICLES = 16
+P_BEST_FACTOR = 0.6
+G_BEST_FACTOR = 0.8
+
+
+#Othe Params
+N_ITERATIONS = int(1000)
+
+
+#Parsing Functions
+#TODO : Move them into a seperate file
+
+def intg0(value):
     if not isinstance(value, int):
         raise argparse.ArgumentTypeError("%r not an Integer" % (value,))
     if value <= 0:
@@ -33,18 +43,29 @@ def intg1(value):
             "%r not a positive integer" % (value,))
     return value
 
+def floatnorm(value):
+  if not isinstance(value,float):
+    raise argparse.ArgumentTypeError("%r not a Float" % (value,))
+  if value <0 or value >1:
+    raise argparse.ArgumentTypeError("%r not a positive Float <=1" % (value,))
+  return value
+
+
+#Build the parser
 
 parser = argparse.ArgumentParser(description='CLI Utility for NNPSO')
-parser.add_argument('n-in', type=intg1, default=5,
+parser.add_argument('xorn', type=intg0, default=5,
                     dest=N_IN, help='Number of XOR Inputs', metavar='N_IN')
+parser.add_argument('bs',type=intg0,default=1,dest=N_BATCHSIZE,help='batchsize',metavar='N_BATCHSIZE')
+parser.add_argument('pno',type=intg0,default=16,dest=N_PARTICLES,help='number of particles',metavar='N_PARTICLES')
+parser.add_argument('iter',type=intg0,default=1000,dest=N_ITERATIONS,help='number of iterations',metavar='N_INTERATIONS')
+parser.add_argument('gbest',type=floatnorm,default =0.8,dest=P_BEST_FACTOR,help='global best for PSO',metavar='G_BEST_FACTOR')
+parser.add_argument('pbest',type=floatnorm,default=0.6,dest=G_BEST_FACTOR,help='local best for PSO',metavar='P_BEST_FACTOR')
 
 
-# Parameters for pso
-# TODO: Add batch size and other properties
-N_PARTICLES = 32
-N_ITERATIONS = int(70000)
-P_BEST_FACTOR = 0.6
-G_BEST_FACTOR = 0.8
+
+
+
 
 # Velocity Decay specifies the multiplier for the velocity update
 VELOCITY_DECAY = 1
