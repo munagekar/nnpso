@@ -1,10 +1,11 @@
 '''
-This file contains the new network definition
+This file contains the new cli
 Author: Abhishek Munagekar
 Language: Python 3
 '''
 # The number of values for xor
 
+# TODO : Print the gbest stuff once done
 
 import itertools
 from functools import reduce
@@ -15,83 +16,100 @@ import random
 import layers
 import math
 import argparse
+import parseutils as pu
 
 
-#XOR Dataset Params
+# Build the parser
+
+parser = argparse.ArgumentParser(description='CLI Utility for NNPSO')
+
+# Dataset Generation Parameters
+parser.add_argument('bs', type=pu.intg0, default=1,
+                    help='batchsize', metavar='N_BATCHSIZE')
+parser.add_argument('xorn', type=pu.intg0, default=5,
+                    help='Number of XOR Inputs', metavar='N_IN')
+
+
+# PSO Parameters
+parser.add_argument('pno', type=pu.intg0, default=16,
+                    help='number of particles', metavar='N_PARTICLES')
+parser.add_argument('gbest', type=pu.floatnorm, default=0.8,
+                    help='global best for PSO', metavar='G_BEST_FACTOR')
+parser.add_argument('pbest', type=pu.floatnorm, default=0.6,
+                    help='local best for PSO', metavar='P_BEST_FACTOR')
+parser.add_argument('veldec', type=pu.floatnorm, default=1,
+                    help='Decay in velocity after each position update',
+                    metavar='VELOCITY_DECAY')
+parser.add_argument('--vr', dest='VELOCITY_RESTRICT', action='store_true',
+                    help='Restrict the Particle Velocity')
+parser.add_argument('--nvr', dest='VELOCITY_RESTRICT', action='store_false',
+                    help='Particle Velocity is Unrestricted')
+parser.add_argument('mv', type=pu.pfloat, default=0.001,
+                    help='Maximum velocity for a particle if restricted',
+                    metavar='MAX_VEL')
+parser.add_argument('mvdec', type=pu.floatnorm, default=1,
+                    help='Multiplier for Max Velocity with each update',
+                    metavar='MAX_VEL_DECAY')
+
+# Hyrid Parmeters
+parser.add_argument('--hybrid', action='store_true',
+                    help='Use Adam along with PSO')
+parser.add_argument('--pso', action='store_false',
+                    help='Use only PSO to optimize the Neural Network')
+parser.add_argument('lr', type=pu.pfloat, default=0.1,
+                    help='Learning Rate if Hybrid Approach',
+                    metavar='LEARNING_RATE')
+
+
+# Other Parameters
+parser.add_argument('iter', type=pu.intg0, default=1000,
+                    help='number of iterations', metavar='N_INTERATIONS')
+parser.add_argument('--hl', nargs='+', type=int,
+                    help='hiddenlayers for the network')
+
+
+# TODO : Added Printing Control
+
+# XOR Dataset Params
 N_IN = 5
-N_BATCHSIZE = 1
+N_BATCHSIZE = 2**N_IN
 
 
-#PSO params
+# PSO params
 N_PARTICLES = 16
 P_BEST_FACTOR = 0.6
 G_BEST_FACTOR = 0.8
-
-
-#Othe Params
-N_ITERATIONS = int(1000)
-
-
-#Parsing Functions
-#TODO : Move them into a seperate file
-
-def intg0(value):
-    if not isinstance(value, int):
-        raise argparse.ArgumentTypeError("%r not an Integer" % (value,))
-    if value <= 0:
-        raise argparse.ArgumentTypeError(
-            "%r not a positive integer" % (value,))
-    return value
-
-def floatnorm(value):
-  if not isinstance(value,float):
-    raise argparse.ArgumentTypeError("%r not a Float" % (value,))
-  if value <0 or value >1:
-    raise argparse.ArgumentTypeError("%r not a positive Float <=1" % (value,))
-  return value
-
-
-#Build the parser
-
-parser = argparse.ArgumentParser(description='CLI Utility for NNPSO')
-parser.add_argument('xorn', type=intg0, default=5,
-                    dest=N_IN, help='Number of XOR Inputs', metavar='N_IN')
-parser.add_argument('bs',type=intg0,default=1,dest=N_BATCHSIZE,help='batchsize',metavar='N_BATCHSIZE')
-parser.add_argument('pno',type=intg0,default=16,dest=N_PARTICLES,help='number of particles',metavar='N_PARTICLES')
-parser.add_argument('iter',type=intg0,default=1000,dest=N_ITERATIONS,help='number of iterations',metavar='N_INTERATIONS')
-parser.add_argument('gbest',type=floatnorm,default =0.8,dest=P_BEST_FACTOR,help='global best for PSO',metavar='G_BEST_FACTOR')
-parser.add_argument('pbest',type=floatnorm,default=0.6,dest=G_BEST_FACTOR,help='local best for PSO',metavar='P_BEST_FACTOR')
-
-
-
-
-
-
 # Velocity Decay specifies the multiplier for the velocity update
 VELOCITY_DECAY = 1
 # Velocity Restrict is computationally slightly more expensive
 VELOCITY_RESTRICT = True
-MAX_VEL = 0.001
+MAX_VEL = 0.005
+# Allows to decay the maximum velocity with each update
+# Useful if the network needs very fine tuning towards the end
 MAX_VEL_DECAY = 1
+
+# Hybrid Parameters
+HYBRID = True
+LEARNING_RATE = 0.1
+
+
+# Other Params
+N_ITERATIONS = int(100000)
+HIDDEN_LAYERS = [3, 2]
+
+
+# Basic Neural Network Definition
+# Simple feedforward Network
+LAYERS = [N_IN] + HIDDEN_LAYERS + [1]
+print('The Network Structure is', LAYERS)
+
+
 t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
                                dtype=tf.float32,
                                name='vel_decay')
 t_MVEL = tf.Variable(MAX_VEL,
                      dtype=tf.float32,
                      name='vel_restrict')
-
-
-# HYBRID Controls
-HYBRID = True
-learning_rate = 0.1
-
-
-# Basic Neural Network Definition
-# Simple feedforward Network
-
-HIDDEN_LAYERS = [3, 2]
-LAYERS = [N_IN] + HIDDEN_LAYERS + [1]
-print('The Network Structure is', LAYERS)
 
 
 # Xorgenerator Function
@@ -171,9 +189,11 @@ for pno in range(N_PARTICLES):
     pweights = []
     pbiases = []
     pbestrand = tf.Variable(tf.random_uniform(
-        shape=[], maxval=P_BEST_FACTOR), name='pno' + str(pno + 1) + 'pbestrand')
+        shape=[], maxval=P_BEST_FACTOR),
+        name='pno' + str(pno + 1) + 'pbestrand')
     gbestrand = tf.Variable(tf.random_uniform(
-        shape=[], maxval=G_BEST_FACTOR), name='pno' + str(pno + 1) + 'gbestrand')
+        shape=[], maxval=G_BEST_FACTOR),
+        name='pno' + str(pno + 1) + 'gbestrand')
     # Append the random values so that the initializer can be called again
     random_values.append(pbestrand)
     random_values.append(gbestrand)
@@ -224,7 +244,7 @@ for pno in range(N_PARTICLES):
         gdiffw = tf.multiply(tf.subtract(gw, w), gbestrand)
         gdiffb = tf.multiply(tf.subtract(gb, b), gbestrand)
         vweight_update = None
-        if VELOCITY_RESTRICT == False:
+        if VELOCITY_RESTRICT is False:
             vweight_update = tf.assign(vw,
                                        tf.add_n([nextvw, pdiffw, gdiffw]),
                                        validate_shape=True)
@@ -242,7 +262,7 @@ for pno in range(N_PARTICLES):
 
         vweight_updates.append(vweight_update)
         vbias_update = None
-        if VELOCITY_RESTRICT == False:
+        if VELOCITY_RESTRICT is False:
             vbias_update = tf.assign(vb,
                                      tf.add_n([nextvb, pdiffb, gdiffb]),
                                      validate_shape=True)
@@ -275,7 +295,7 @@ for pno in range(N_PARTICLES):
                                validate_shape=True)
     control_updates.append(control_update)
     if HYBRID:
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
         hybrid_update = optimizer.minimize(loss)
         hybrid_updates.append(hybrid_update)
 
@@ -339,8 +359,9 @@ with tf.Session() as sess:
         # Reinitialize the Random Values at each iteration
 
         # xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
-        dict_out, _, gfit, gbiases, vweights, vbiases, gweights = sess.run(req_list, feed_dict={
+        _tuple = sess.run(req_list, feed_dict={
             net_in: xor_in, label: xor_out})
+        dict_out, _, gfit, gbiases, vweights, vbiases, gweights = _tuple
 
         _losses = dict_out
         print('Losses:', _losses, 'Iteration:', i)
