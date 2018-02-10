@@ -64,58 +64,6 @@ def build_parser():
     return parser
 
 
-# TODO : Add Printing Control
-
-print('Script Launched:', utils.curtime())
-print('Building Parser:', utils.curtime())
-parser = build_parser()
-print('Parser Built:', utils.curtime())
-print('Parsing Arguments:', utils.curtime())
-args = parser.parse_args()
-print('Arguments Parsed:', utils.curtime())
-
-# XOR Dataset Params
-N_IN = args.xorn
-N_BATCHSIZE = args.bs
-
-
-# PSO params
-N_PARTICLES = args.pno
-P_BEST_FACTOR = args.pbest
-G_BEST_FACTOR = args.gbest
-# Velocity Decay specifies the multiplier for the velocity update
-VELOCITY_DECAY = args.veldec
-# Velocity Restrict is computationally slightly more expensive
-VELOCITY_RESTRICT = True
-MAX_VEL = args.mv
-# Allows to decay the maximum velocity with each update
-# Useful if the network needs very fine tuning towards the end
-MAX_VEL_DECAY = args.mvdec
-
-# Hybrid Parameters
-HYBRID = True
-LEARNING_RATE = args.lr
-
-
-# Other Params
-N_ITERATIONS = args.iter
-HIDDEN_LAYERS = args.hl
-
-
-# Basic Neural Network Definition
-# Simple feedforward Network
-LAYERS = [N_IN] + HIDDEN_LAYERS + [1]
-print('The Network Structure is', LAYERS)
-
-
-t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
-                               dtype=tf.float32,
-                               name='vel_decay')
-t_MVEL = tf.Variable(MAX_VEL,
-                     dtype=tf.float32,
-                     name='vel_restrict')
-
-
 # Xorgenerator Function
 def xor_next_batch(batch_size, n_input):
     batch_x = []
@@ -131,6 +79,59 @@ def xor_next_batch(batch_size, n_input):
         batch_y.append(y)
         batch_x.append(x)
     return batch_x, batch_y
+
+
+# TODO : Add Printing Control
+
+print('Script Launched\t\t:', utils.curtime())
+print('Building Parser\t\t:', utils.curtime())
+parser = build_parser()
+print('Parser Built\t\t:', utils.curtime())
+print('Parsing Arguments\t:', utils.curtime())
+args = parser.parse_args()
+print('Arguments Parsed\t:', utils.curtime())
+print('Arguments Obtained\t:', vars(args))
+
+# XOR Dataset Params
+N_IN = args.xorn
+N_BATCHSIZE = args.bs
+
+
+# PSO params
+N_PARTICLES = args.pno
+P_BEST_FACTOR = args.pbest
+G_BEST_FACTOR = args.gbest
+# Velocity Decay specifies the multiplier for the velocity update
+VELOCITY_DECAY = args.veldec
+# Velocity Restrict is computationally slightly more expensive
+VELOCITY_RESTRICT = args.vr
+MAX_VEL = args.mv
+# Allows to decay the maximum velocity with each update
+# Useful if the network needs very fine tuning towards the end
+MAX_VEL_DECAY = args.mvdec
+
+# Hybrid Parameters
+HYBRID = args.hybrid
+LEARNING_RATE = args.lr
+
+
+# Other Params
+N_ITERATIONS = args.iter
+HIDDEN_LAYERS = args.hl
+
+
+# Basic Neural Network Definition
+# Simple feedforward Network
+LAYERS = [N_IN] + HIDDEN_LAYERS + [1]
+print('Network Structure\t:', LAYERS)
+
+
+t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
+                               dtype=tf.float32,
+                               name='vel_decay')
+t_MVEL = tf.Variable(MAX_VEL,
+                     dtype=tf.float32,
+                     name='vel_restrict')
 
 
 # A list of lists having N_IN elements all either 0 or 1
@@ -370,12 +371,6 @@ with tf.Session() as sess:
         _losses = dict_out
         print('Losses:', _losses, 'Iteration:', i)
         print('Gfit:', gfit)
-        '''
-        print('gweights:',gweights)
-        print('gbiases:',gbiases)
-        print('vweights',vweights)
-        print('vbiases',vbiases)
-        '''
 
     end_time = time.time()
     # Close the writer
