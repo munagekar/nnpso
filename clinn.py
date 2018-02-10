@@ -149,8 +149,8 @@ label = tf.placeholder(dtype=tf.float32,
                        shape=[N_BATCHSIZE, 1],
                        name='net_label')
 
-
-print('Starting to Build Network')
+print('Mem Usage\t\t:', utils.str_memusage(datatype='M'))
+print('Building Network\t:', utils.curtime())
 
 # MULTI-PARTICLE NEURAL NETS
 
