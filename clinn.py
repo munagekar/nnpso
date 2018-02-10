@@ -19,56 +19,55 @@ import argparse
 import parseutils as pu
 
 
-# Build the parser
+# Function to Build the Parser for CLI
+def build_parser():
+    parser = argparse.ArgumentParser(description='CLI Utility for NNPSO')
 
-parser = argparse.ArgumentParser(description='CLI Utility for NNPSO')
+    # Dataset Generation Parameters
+    parser.add_argument('--bs', type=pu.intg0, default=1,
+                        help='batchsize', metavar='N_BATCHSIZE')
+    parser.add_argument('--xorn', type=pu.intg0, default=5,
+                        help='Number of XOR Inputs', metavar='N_IN')
 
-# Dataset Generation Parameters
-parser.add_argument('bs', type=pu.intg0, default=1,
-                    help='batchsize', metavar='N_BATCHSIZE')
-parser.add_argument('xorn', type=pu.intg0, default=5,
-                    help='Number of XOR Inputs', metavar='N_IN')
+    # PSO Parameters
+    parser.add_argument('--pno', type=pu.intg0, default=16,
+                        help='number of particles', metavar='N_PARTICLES')
+    parser.add_argument('--gbest', type=pu.floatnorm, default=0.8,
+                        help='global best for PSO', metavar='G_BEST_FACTOR')
+    parser.add_argument('--pbest', type=pu.floatnorm, default=0.6,
+                        help='local best for PSO', metavar='P_BEST_FACTOR')
+    parser.add_argument('--veldec', type=pu.floatnorm, default=1,
+                        help='Decay in velocity after each position update',
+                        metavar='VELOCITY_DECAY')
+    parser.add_argument('--vr', action='store_true',
+                        help='Restrict the Particle Velocity')
+    parser.add_argument('--nvr', action='store_false',
+                        help='Particle Velocity Unrestricted')
+    parser.add_argument('--mv', type=pu.pfloat, default=0.001,
+                        help='Maximum velocity for a particle if restricted',
+                        metavar='MAX_VEL')
+    parser.add_argument('--mvdec', type=pu.floatnorm, default=1,
+                        help='Multiplier for Max Velocity with each update',
+                        metavar='MAX_VEL_DECAY')
+    # Hyrid Parmeters
+    parser.add_argument('--hybrid', action='store_true',
+                        help='Use Adam along with PSO')
+    parser.add_argument('--pso', action='store_false',
+                        help='Use only PSO to optimize the Neural Network')
+    parser.add_argument('--lr', type=pu.pfloat, default=0.1,
+                        help='Learning Rate if Hybrid Approach',
+                        metavar='LEARNING_RATE')
 
+    # Other Parameters
+    parser.add_argument('--iter', type=pu.intg0, default=10000,
+                        help='number of iterations', metavar='N_INTERATIONS')
+    parser.add_argument('--hl', nargs='+', type=int,
+                        help='hiddenlayers for the network')
 
-# PSO Parameters
-parser.add_argument('pno', type=pu.intg0, default=16,
-                    help='number of particles', metavar='N_PARTICLES')
-parser.add_argument('gbest', type=pu.floatnorm, default=0.8,
-                    help='global best for PSO', metavar='G_BEST_FACTOR')
-parser.add_argument('pbest', type=pu.floatnorm, default=0.6,
-                    help='local best for PSO', metavar='P_BEST_FACTOR')
-parser.add_argument('veldec', type=pu.floatnorm, default=1,
-                    help='Decay in velocity after each position update',
-                    metavar='VELOCITY_DECAY')
-parser.add_argument('--vr', dest='VELOCITY_RESTRICT', action='store_true',
-                    help='Restrict the Particle Velocity')
-parser.add_argument('--nvr', dest='VELOCITY_RESTRICT', action='store_false',
-                    help='Particle Velocity is Unrestricted')
-parser.add_argument('mv', type=pu.pfloat, default=0.001,
-                    help='Maximum velocity for a particle if restricted',
-                    metavar='MAX_VEL')
-parser.add_argument('mvdec', type=pu.floatnorm, default=1,
-                    help='Multiplier for Max Velocity with each update',
-                    metavar='MAX_VEL_DECAY')
-
-# Hyrid Parmeters
-parser.add_argument('--hybrid', action='store_true',
-                    help='Use Adam along with PSO')
-parser.add_argument('--pso', action='store_false',
-                    help='Use only PSO to optimize the Neural Network')
-parser.add_argument('lr', type=pu.pfloat, default=0.1,
-                    help='Learning Rate if Hybrid Approach',
-                    metavar='LEARNING_RATE')
-
-
-# Other Parameters
-parser.add_argument('iter', type=pu.intg0, default=1000,
-                    help='number of iterations', metavar='N_INTERATIONS')
-parser.add_argument('--hl', nargs='+', type=int,
-                    help='hiddenlayers for the network')
+    return parser
 
 
-# TODO : Added Printing Control
+# TODO : Add Printing Control
 
 # XOR Dataset Params
 N_IN = 5
@@ -83,7 +82,7 @@ G_BEST_FACTOR = 0.8
 VELOCITY_DECAY = 1
 # Velocity Restrict is computationally slightly more expensive
 VELOCITY_RESTRICT = True
-MAX_VEL = 0.005
+MAX_VEL = 0.1
 # Allows to decay the maximum velocity with each update
 # Useful if the network needs very fine tuning towards the end
 MAX_VEL_DECAY = 1
