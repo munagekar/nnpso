@@ -5,9 +5,11 @@
 import argparse
 
 # Integer Greater than zero
+# TODO: Add try catch block around the cast
 
 
 def intg0(value):
+    value = int(value)
     if not isinstance(value, int):
         raise argparse.ArgumentTypeError("%r not an Integer" % (value,))
     if value <= 0:
@@ -19,6 +21,7 @@ def intg0(value):
 
 
 def floatnorm(value):
+    value = float(value)
     if not isinstance(value, float):
         raise argparse.ArgumentTypeError("%r not a Float" % (value,))
     if value < 0 or value > 1:
@@ -30,6 +33,7 @@ def floatnorm(value):
 
 
 def pfloat(value):
+    value = float(value)
     if not isinstance(value, float):
         raise argparse.ArgumentError("%r not a Float" % (value,))
     if value <= 0:
