@@ -313,18 +313,23 @@ for pno in range(N_PARTICLES):
 
     for i in range(len(weights)):
         # Particle Best
-        pweight = tf.cond(loss < pfit, lambda: weights[i], lambda: pweights[i])
+        pweight = tf.cond(loss <= pfit, lambda: weights[
+                          i], lambda: pweights[i])
         fit_update = tf.assign(pweights[i], pweight, validate_shape=True)
         fit_updates.append(fit_update)
-        pbias = tf.cond(loss < pfit, lambda: biases[i], lambda: pbiases[i])
+        pbias = tf.cond(loss <= pfit, lambda: biases[i], lambda: pbiases[i])
         fit_update = tf.assign(pbiases[i], pbias, validate_shape=True)
         fit_updates.append(fit_update)
 
         # Global Best
-        gweight = tf.cond(loss < gfit, lambda: weights[i], lambda: gweights[i])
+        gweight = tf.cond(loss <= gfit,
+                          lambda: weights[i],
+                          lambda: gweights[i])
         fit_update = tf.assign(gweights[i], gweight, validate_shape=True)
         fit_updates.append(fit_update)
-        gbias = tf.cond(loss < gfit, lambda: biases[i], lambda: gbiases[i])
+        gbias = tf.cond(loss <= gfit,
+                        lambda: biases[i],
+                        lambda: gbiases[i])
         fit_update = tf.assign(gbiases[i], gbias, validate_shape=True)
         fit_updates.append(fit_update)
 
