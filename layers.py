@@ -1,12 +1,13 @@
-
+'''
+Custom TensorFlow Layers
+Author : Abhishek Munagekar
+'''
 import tensorflow as tf
-import math
+
 
 # Activation Function
-
-
 def activate(input_layer, act='relu', name='activation'):
-    if act == None:
+    if act is None:
         return input_layer
     if act == 'relu':
         return tf.nn.relu(input_layer, name)
@@ -20,7 +21,8 @@ def activate(input_layer, act='relu', name='activation'):
 
 # Fully connected cusom layer for PSO
 # Supported activation function types : None,relu,sqr,sqr_sigmoid,sigmoid
-def fc(input_tensor, n_output_units, scope, activation_fn='relu', uniform=False):
+def fc(input_tensor, n_output_units, scope,
+       activation_fn='relu', uniform=False):
     shape = [input_tensor.get_shape().as_list()[-1], n_output_units]
     # Use the Scope specified
     with tf.variable_scope(scope):
@@ -61,6 +63,8 @@ def fc(input_tensor, n_output_units, scope, activation_fn='relu', uniform=False)
 
         # Perform actual feedforward
         act = tf.matmul(input_tensor, weights) + biases
-
+        pso_tupple = [weights, biases,
+                      pbest_w, pbest_b,
+                      vel_weights, vel_biases]
         # Activate And Return
-        return activate(act, activation_fn), weights, biases, pbest_w, pbest_b, vel_weights, vel_biases
+        return activate(act, activation_fn), pso_tupple

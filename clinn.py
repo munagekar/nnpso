@@ -1,9 +1,10 @@
 '''
-This file contains the new cli
+A POC for PSO for NN Training
+Comes with its own Cli built using Argparse
 Author: Abhishek Munagekar
 Language: Python 3
 '''
-# The number of values for xor
+
 
 # TODO : Print the gbest stuff once done
 
@@ -209,11 +210,12 @@ for pno in range(N_PARTICLES):
 
     for idx, num_neuron in enumerate(LAYERS[1:]):
         layer_scope = 'pno' + str(pno + 1) + 'fc' + str(idx + 1)
-        net, w, b, pw, pb, vw, vb = layers.fc(input_tensor=net,
-                                              n_output_units=num_neuron,
-                                              activation_fn='sigmoid',
-                                              scope=layer_scope,
-                                              uniform=True)
+        net, pso_tupple = layers.fc(input_tensor=net,
+                                    n_output_units=num_neuron,
+                                    activation_fn='sigmoid',
+                                    scope=layer_scope,
+                                    uniform=True)
+        w, b, pw, pb, vw, vb = pso_tupple
         vweights.append(vw)
         vbiases.append(vb)
         weights.append(w)
