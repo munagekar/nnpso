@@ -49,11 +49,11 @@ While using traditional approaches we get stuck up 50% of the times with a learn
 
 # Project Guidelines
 
--Testing : Rigorous
--Comments : More the Merrier
--Modules : Split em up
--Variable Names : Big is OKay, Non-informative ain't
--Code Format: Python PEP 8
+- Testing : Rigorous
+- Comments : More the Merrier
+- Modules : Split em up
+- Variable Names : Big is OKay, Non-informative ain't
+- Code Format: Python PEP 8
 
 
 
