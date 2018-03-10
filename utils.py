@@ -11,9 +11,9 @@ import os
 DataUnits = {'B': 1, 'K': 1024, 'M': 1024**2, 'G': 1024 ** 3}
 
 
-# Return the current time in a easy to print string format
-def curtime():
-    return str(datetime.now())
+# Print the current time along with a string
+def msgtime(prefix=''):
+    print(prefix + str(datetime.now()))
 
 
 # Returns the current memory usage by the python process

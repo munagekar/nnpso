@@ -17,8 +17,8 @@ import random
 import math
 import argparse
 import parseutils as pu
-import utils
 from layers import maxclip, fc
+from utils import msgtime, str_memusage, print_prog_bar
 
 
 # Function to Build the Parser for CLI
@@ -84,13 +84,13 @@ def xor_next_batch(batch_size, n_input):
 
 # TODO : Add Printing Control
 
-print('Script Launched\t\t:', utils.curtime())
-print('Building Parser\t\t:', utils.curtime())
+msgtime('Script Launched\t\t:')
+msgtime('Building Parser\t\t:')
 parser = build_parser()
-print('Parser Built\t\t:', utils.curtime())
-print('Parsing Arguments\t:', utils.curtime())
+msgtime('Parser Built\t\t:')
+msgtime('Parsing Arguments\t:')
 args = parser.parse_args()
-print('Arguments Parsed\t:', utils.curtime())
+msgtime('Arguments Parsed\t:')
 print('Arguments Obtained\t:', vars(args))
 
 # XOR Dataset Params
@@ -150,8 +150,8 @@ label = tf.placeholder(dtype=tf.float32,
                        shape=[N_BATCHSIZE, 1],
                        name='net_label')
 
-print('Mem Usage\t\t:', utils.str_memusage(datatype='M'))
-print('Building Network\t:', utils.curtime())
+print('Mem Usage\t\t:', str_memusage(datatype='M'))
+msgtime('Building Network\t:')
 
 # MULTI-PARTICLE NEURAL NETS
 
@@ -333,10 +333,10 @@ for pno in range(N_PARTICLES):
     # Update the lists
     nets.append(net)
     losses.append(loss)
-    utils.print_prog_bar(iteration=pno + 1, total=N_PARTICLES)
+    print_prog_bar(iteration=pno + 1, total=N_PARTICLES)
 
 
-print('Network Build Successful')
+msgtime('Completed\t\t:')
 print("Number of Random Values:", len(random_values))
 print("Number of Fitness Updates:", len(fit_updates))
 
