@@ -14,11 +14,11 @@ import operator
 import tensorflow as tf
 import time
 import random
-import layers
 import math
 import argparse
 import parseutils as pu
 import utils
+from layers import maxclip, fc
 
 
 # Function to Build the Parser for CLI
@@ -210,11 +210,11 @@ for pno in range(N_PARTICLES):
 
     for idx, num_neuron in enumerate(LAYERS[1:]):
         layer_scope = 'pno' + str(pno + 1) + 'fc' + str(idx + 1)
-        net, pso_tupple = layers.fc(input_tensor=net,
-                                    n_output_units=num_neuron,
-                                    activation_fn='sigmoid',
-                                    scope=layer_scope,
-                                    uniform=True)
+        net, pso_tupple = fc(input_tensor=net,
+                             n_output_units=num_neuron,
+                             activation_fn='sigmoid',
+                             scope=layer_scope,
+                             uniform=True)
         w, b, pw, pb, vw, vb = pso_tupple
         vweights.append(vw)
         vbiases.append(vb)
@@ -257,14 +257,11 @@ for pno in range(N_PARTICLES):
                                        validate_shape=True)
         else:
             vweight_update = tf.assign(vw,
-                                       tf.maximum(
-                                           tf.minimum(
-                                               tf.add_n(
-                                                   [nextvw, pdiffw, gdiffw]
-                                               ),
-                                               t_MVEL),
-                                           -t_MVEL
-                                       ),
+                                       maxclip(
+                                           tf.add_n(
+                                               [nextvw, pdiffw, gdiffw]
+                                           ),
+                                           t_MVEL),
                                        validate_shape=True)
 
         vweight_updates.append(vweight_update)
@@ -275,15 +272,13 @@ for pno in range(N_PARTICLES):
                                      validate_shape=True)
         else:
             vbias_update = tf.assign(vb,
-                                     tf.minimum(
-                                         tf.maximum(
-                                             tf.add_n(
-                                                 [nextvb, pdiffb, gdiffb]
-                                             ),
-                                             -t_MVEL),
-                                         t_MVEL
-                                     ),
+                                     maxclip(
+                                         tf.add_n(
+                                             [nextvb, pdiffb, gdiffb]
+                                         ),
+                                         t_MVEL),
                                      validate_shape=True)
+
         vbias_updates.append(vbias_update)
         weight_update = tf.assign(w, w + vw, validate_shape=True)
         weight_updates.append(weight_update)

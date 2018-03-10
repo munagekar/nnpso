@@ -19,7 +19,7 @@ def activate(input_layer, act='relu', name='activation'):
         return tf.nn.sigmoid(input_layer, name)
 
 
-# Fully connected cusom layer for PSO
+# Fully connected custom layer for PSO
 # Supported activation function types : None,relu,sqr,sqr_sigmoid,sigmoid
 def fc(input_tensor, n_output_units, scope,
        activation_fn='relu', uniform=False):
@@ -68,3 +68,8 @@ def fc(input_tensor, n_output_units, scope,
                       vel_weights, vel_biases]
         # Activate And Return
         return activate(act, activation_fn), pso_tupple
+
+
+# Magnitude Clipper
+def maxclip(tensor, magmax):
+    return tf.minimum(tf.maximum(tensor, -magmax), magmax)
