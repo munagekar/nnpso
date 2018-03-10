@@ -47,12 +47,18 @@ With the 32 particles the sample network can be trained under 20K iteration with
 
 While using traditional approaches we get stuck up 50% of the times with a learning rate of 0.001. Even after 90000 iteration our losses for the best particle were at 0.002021174.
 
+# Project Guidelines
 
+-Testing : Rigorous
+-Comments : More the Merrier
+-Modules : Split em up
+-Variable Names : Big is OKay, Non-informative ain't
+-Code Format: Python PEP 8
 
 
 
 # Future Work
- - Tryping out other PSO variants
- - Working on Argparse for CLI
- - GUI for Visualization
+ - Trying out other PSO variants
+ - Testing on MNIST
+ - Adding support for more Layers
 
