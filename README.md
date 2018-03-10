@@ -55,10 +55,14 @@ While using traditional approaches we get stuck up 50% of the times with a learn
 - Variable Names : Big is OKay, Non-informative ain't
 - Code Format: Python PEP 8
 
-
-
 # Future Work
  - Trying out other PSO variants
  - Testing on MNIST
  - Adding support for more Layers
+
+# Similar Projects
+## Cublas Version of this Project
+- [Local Best PSO without backprop](https://github.com/chintans111/ANNPSO)
+- More memory efficient atleast Theoratically
+- Doesn't store activation of all Layers during Feed Forward
 
