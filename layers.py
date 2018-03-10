@@ -71,5 +71,8 @@ def fc(input_tensor, n_output_units, scope,
 
 
 # Magnitude Clipper
+# Magmax can be either a Tensor or a Float
 def maxclip(tensor, magmax):
+    # assertion commented out to allow usage of both Tensor & Integer
+    # assert magmax > 0, "magmax argument in maxclip must be positive"
     return tf.minimum(tf.maximum(tensor, -magmax), magmax)

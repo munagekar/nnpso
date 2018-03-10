@@ -333,7 +333,7 @@ for pno in range(N_PARTICLES):
     # Update the lists
     nets.append(net)
     losses.append(loss)
-    print('Building Net:', pno + 1)
+    utils.print_prog_bar(iteration=pno + 1, total=N_PARTICLES)
 
 
 print('Network Build Successful')
@@ -345,9 +345,12 @@ print("Number of Fitness Updates:", len(fit_updates))
 init = tf.global_variables_initializer()
 print('Graph Init Successful:')
 
+
+'''
+List of all the variables
 for var in tf.global_variables():
     print(var)
-
+'''
 
 # Define the updates which are to be done before each iterations
 random_updates = [r.initializer for r in random_values]
