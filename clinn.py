@@ -62,6 +62,10 @@ def build_parser():
     parser.add_argument('--hl', nargs='+', type=int,
                         help='hiddenlayers for the network', default=[3, 2])
 
+    parser.add_argument('--pi', type=pu.intg0, default=100,
+                        help='Nos iteration for result printing',
+                        metavar='N_BATCHSIZE')
+
     return parser
 
 
@@ -119,6 +123,7 @@ LEARNING_RATE = args.lr
 # Other Params
 N_ITERATIONS = args.iter
 HIDDEN_LAYERS = args.hl
+PRINT_ITER = args.pi
 
 
 # Basic Neural Network Definition
@@ -337,13 +342,17 @@ for pno in range(N_PARTICLES):
 
 
 msgtime('Completed\t\t:')
+
+# TODO : Print Network Stats here
+'''
+print('Network Statistics')
 print("Number of Random Values:", len(random_values))
 print("Number of Fitness Updates:", len(fit_updates))
-
+'''
 
 # Initialize the entire graph
 init = tf.global_variables_initializer()
-print('Graph Init Successful:')
+msgtime('Graph Init Successful\t:')
 
 
 '''
@@ -374,8 +383,9 @@ with tf.Session() as sess:
         dict_out, _, gfit, gbiases, vweights, vbiases, gweights = _tuple
 
         _losses = dict_out
-        print('Losses:', _losses, 'Iteration:', i)
-        print('Gfit:', gfit)
+        if (i + 1) % PRINT_ITER == 0:
+            print('Losses:', _losses, 'Iteration:', i)
+            print('Gfit:', gfit)
 
     end_time = time.time()
     # Close the writer
