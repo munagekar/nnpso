@@ -4,8 +4,9 @@
 
 from datetime import datetime
 import psutil
+import operator
 import os
-
+from functools import reduce
 
 # Data Storage Constants
 DataUnits = {'B': 1, 'K': 1024, 'M': 1024**2, 'G': 1024 ** 3}
@@ -47,3 +48,20 @@ def print_prog_bar(iteration, total, prefix='', suffix='',
     # Print New Line on Complete
     if iteration == total:
         print()
+
+
+# Fully Connected Network Information Printer
+# Prints the stats given the network definition
+# Net def is a list of numbers
+def fcn_stats(net_def):
+    num_l = len(net_def)
+    num_hl = num_l - 2
+    num_weights = reduce(operator.mul, net_def)
+    num_biases = reduce(operator.mul, net_def[1:])
+    tot_dim = num_weights + num_biases
+    print('#*******NET STATS*******#')
+    print('Layers\t\t\t:', num_l)
+    print('Hidden\t\t\t:', num_hl)
+    print('Weight Dims\t\t:', num_weights)
+    print('Bias Dims\t\t:', num_biases)
+    print('Total Dims\t\t:', tot_dim)

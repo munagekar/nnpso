@@ -18,7 +18,10 @@ import math
 import argparse
 import parseutils as pu
 from layers import maxclip, fc
-from utils import msgtime, str_memusage, print_prog_bar
+from utils import msgtime, str_memusage, print_prog_bar, fcn_stats
+
+#Suppress Unecessary Warnings
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 # Function to Build the Parser for CLI
@@ -338,17 +341,14 @@ for pno in range(N_PARTICLES):
     # Update the lists
     nets.append(net)
     losses.append(loss)
-    print_prog_bar(iteration=pno + 1, total=N_PARTICLES)
+    print_prog_bar(iteration=pno + 1,
+                   total=N_PARTICLES,
+                   suffix=str_memusage('M'))
 
 
 msgtime('Completed\t\t:')
 
-# TODO : Print Network Stats here
-'''
-print('Network Statistics')
-print("Number of Random Values:", len(random_values))
-print("Number of Fitness Updates:", len(fit_updates))
-'''
+fcn_stats(LAYERS)
 
 # Initialize the entire graph
 init = tf.global_variables_initializer()
