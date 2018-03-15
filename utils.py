@@ -56,7 +56,9 @@ def print_prog_bar(iteration, total, prefix='', suffix='',
 def fcn_stats(net_def):
     num_l = len(net_def)
     num_hl = num_l - 2
-    num_weights = reduce(operator.mul, net_def)
+    zip_weights = zip(net_def[0:-1], net_def[1:])
+    layer_weights = list(map(lambda zi: zi[0] * zi[1], zip_weights))
+    num_weights = reduce(operator.add, layer_weights)
     num_biases = reduce(operator.mul, net_def[1:])
     tot_dim = num_weights + num_biases
     print('#*******NET STATS*******#')

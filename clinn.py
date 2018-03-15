@@ -20,7 +20,7 @@ import parseutils as pu
 from layers import maxclip, fc
 from utils import msgtime, str_memusage, print_prog_bar, fcn_stats
 
-#Suppress Unecessary Warnings
+# Suppress Unecessary Warnings
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
@@ -140,7 +140,8 @@ t_VELOCITY_DECAY = tf.constant(value=VELOCITY_DECAY,
                                name='vel_decay')
 t_MVEL = tf.Variable(MAX_VEL,
                      dtype=tf.float32,
-                     name='vel_restrict')
+                     name='vel_restrict',
+                     trainable=False)
 
 
 # A list of lists having N_IN elements all either 0 or 1
@@ -193,7 +194,7 @@ hybrid_updates = []
 # Global Best
 gweights = []
 gbiases = []
-gfit = tf.Variable(math.inf, name='gbestfit')
+gfit = tf.Variable(math.inf, name='gbestfit', trainable=False)
 
 # TODO:Parellized the following loop
 # TODO:See if the Conditional Function Lambdas can be optimized
@@ -204,10 +205,12 @@ for pno in range(N_PARTICLES):
     pbiases = []
     pbestrand = tf.Variable(tf.random_uniform(
         shape=[], maxval=P_BEST_FACTOR),
-        name='pno' + str(pno + 1) + 'pbestrand')
+        name='pno' + str(pno + 1) + 'pbestrand',
+        trainable=False)
     gbestrand = tf.Variable(tf.random_uniform(
         shape=[], maxval=G_BEST_FACTOR),
-        name='pno' + str(pno + 1) + 'gbestrand')
+        name='pno' + str(pno + 1) + 'gbestrand',
+        trainable = False)
     # Append the random values so that the initializer can be called again
     random_values.append(pbestrand)
     random_values.append(gbestrand)
