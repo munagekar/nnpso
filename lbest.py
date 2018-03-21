@@ -16,7 +16,7 @@ import math
 import argparse
 import parseutils as pu
 from layers import maxclip, fc
-from utils import msgtime, str_memusage, print_prog_bar, fcn_stats
+from utils import msgtime, str_memusage, print_prog_bar, fcn_stats, chical
 
 # Suppress Unecessary Warnings
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -58,6 +58,8 @@ def build_parser():
     parser.add_argument('--lr', type=pu.pfloat, default=0.1,
                         help='Learning Rate if Hybrid Approach',
                         metavar='LEARNING_RATE')
+    parser.add_argument('--lbpso', action='store_true',
+                        help='Using Local Best Variant of PSO')
 
     # Other Parameters
     parser.add_argument('--iter', type=pu.intg0, default=int(1e6),
@@ -109,6 +111,7 @@ N_BATCHSIZE = args.bs
 N_PARTICLES = args.pno
 P_BEST_FACTOR = args.pbest
 G_BEST_FACTOR = args.gbest
+L_BEST_FACTOR = args.lbest
 # Velocity Decay specifies the multiplier for the velocity update
 VELOCITY_DECAY = args.veldec
 # Velocity Restrict is computationally slightly more expensive
@@ -121,6 +124,7 @@ MAX_VEL_DECAY = args.mvdec
 # Hybrid Parameters
 HYBRID = args.hybrid
 LEARNING_RATE = args.lr
+LBPSO = args.lbpso
 
 
 # Other Params
@@ -190,11 +194,14 @@ control_updates = []
 # Hybrid Updates - Using of PSO + Traditional Approaches
 hybrid_updates = []
 
+gweights = None
+gbiases = None
+gfit = None
 
-# Global Best
-gweights = []
-gbiases = []
-gfit = tf.Variable(math.inf, name='gbestfit', trainable=False)
+if not LBPSO:
+    gweights = []
+    gbiases = []
+    gfit = tf.Variable(math.inf, name='gbestfit', trainable=False)
 
 # TODO:Parellized the following loop
 # TODO:See if the Conditional Function Lambdas can be optimized
@@ -207,14 +214,29 @@ for pno in range(N_PARTICLES):
         shape=[], maxval=P_BEST_FACTOR),
         name='pno' + str(pno + 1) + 'pbestrand',
         trainable=False)
-    gbestrand = tf.Variable(tf.random_uniform(
-        shape=[], maxval=G_BEST_FACTOR),
-        name='pno' + str(pno + 1) + 'gbestrand',
-        trainable=False)
+    gbestrand = None
+    lbestrand = None
+    if not LBPSO:
+        gbestrand = tf.Variable(tf.random_uniform(
+            shape=[], maxval=G_BEST_FACTOR),
+            name='pno' + str(pno + 1) + 'gbestrand',
+            trainable=False)
+    else:
+        lbestrand = tf.Variable(tf.random_uniform(
+            shape=[], maxval=L_BEST_FACTOR),
+            name='pno' + str(pno + 1) + 'lbestrand',
+            trainable=False)
+
     # Append the random values so that the initializer can be called again
     random_values.append(pbestrand)
-    random_values.append(gbestrand)
+    if not LBPSO:
+        random_values.append(gbestrand)
+    else:
+        random_values.append(lbestrand)
     pfit = tf.Variable(math.inf, name='pno' + str(pno + 1) + 'fit')
+    lfit = None
+    if LBPSO:
+        lfit = tf.Variable(math.inf, name='pno' + str(pno + 1) + 'lfit')
 
     net = net_in
     # Define the parameters
@@ -244,14 +266,15 @@ for pno in range(N_PARTICLES):
         # Define & Reuse the GBest
         gw = None
         gb = None
-        with tf.variable_scope("gbest", reuse=tf.AUTO_REUSE):
-            gw = tf.get_variable(name='fc' + str(idx + 1) + 'w',
-                                 shape=[LAYERS[idx], LAYERS[idx + 1]],
-                                 initializer=tf.zeros_initializer)
+        if not LBPSO:
+            with tf.variable_scope("gbest", reuse=tf.AUTO_REUSE):
+                gw = tf.get_variable(name='fc' + str(idx + 1) + 'w',
+                                     shape=[LAYERS[idx], LAYERS[idx + 1]],
+                                     initializer=tf.zeros_initializer)
 
-            gb = tf.get_variable(name='fc' + str(idx + 1) + 'b',
-                                 shape=[LAYERS[idx + 1]],
-                                 initializer=tf.zeros_initializer)
+                gb = tf.get_variable(name='fc' + str(idx + 1) + 'b',
+                                     shape=[LAYERS[idx + 1]],
+                                     initializer=tf.zeros_initializer)
 
         # If first Particle add to Global Else it is already present
         if pno == 0:
