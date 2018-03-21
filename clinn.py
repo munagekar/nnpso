@@ -196,6 +196,9 @@ gweights = []
 gbiases = []
 gfit = tf.Variable(math.inf, name='gbestfit', trainable=False)
 
+
+fcn_stats(LAYERS)
+
 # TODO:Parellized the following loop
 # TODO:See if the Conditional Function Lambdas can be optimized
 for pno in range(N_PARTICLES):
@@ -210,7 +213,7 @@ for pno in range(N_PARTICLES):
     gbestrand = tf.Variable(tf.random_uniform(
         shape=[], maxval=G_BEST_FACTOR),
         name='pno' + str(pno + 1) + 'gbestrand',
-        trainable = False)
+        trainable=False)
     # Append the random values so that the initializer can be called again
     random_values.append(pbestrand)
     random_values.append(gbestrand)
@@ -351,7 +354,6 @@ for pno in range(N_PARTICLES):
 
 msgtime('Completed\t\t:')
 
-fcn_stats(LAYERS)
 
 # Initialize the entire graph
 init = tf.global_variables_initializer()

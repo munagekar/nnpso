@@ -7,6 +7,7 @@ import psutil
 import operator
 import os
 from functools import reduce
+from math import sqrt
 
 # Data Storage Constants
 DataUnits = {'B': 1, 'K': 1024, 'M': 1024**2, 'G': 1024 ** 3}
@@ -67,3 +68,10 @@ def fcn_stats(net_def):
     print('Weight Dims\t\t:', num_weights)
     print('Bias Dims\t\t:', num_biases)
     print('Total Dims\t\t:', tot_dim)
+
+
+# Calculate
+def chical(c1, c2):
+    psi = c1 + c2
+    chi = abs(2.0 / (2.0 - psi - sqrt(psi * psi - 4.0 * psi)))
+    return chi
