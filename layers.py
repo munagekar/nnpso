@@ -45,8 +45,15 @@ def fc(input_tensor, n_output_units, scope,
         biases = tf.Variable(
             tf.zeros(shape=[n_output_units]), name='biases', dtype=tf.float32)
         # Particle Best
-        pbest_w = tf.Variable(weights.initialized_value(), name='pbest_w')
-        pbest_b = tf.Variable(biases.initialized_value(), name='pbest_b')
+        pbest_w = tf.get_variable(
+            shape=shape,
+            name='pbest_w',
+            initializer=tf.random_uniform_initializer)
+        pbest_b = tf.get_variable(
+            shape=[n_output_units],
+            name='pbest_b',
+            initializer=tf.random_uniform_initializer)
+
         # Velocities
         vel_weights = tf.Variable(tf.random_uniform(
             shape=shape,
