@@ -131,6 +131,7 @@ LBPSO = args.lbpso
 N_ITERATIONS = args.iter
 HIDDEN_LAYERS = args.hl
 PRINT_ITER = args.pi
+CHI = chical(P_BEST_FACTOR, L_BEST_FACTOR)
 
 
 # Basic Neural Network Definition
@@ -210,6 +211,12 @@ for pno in range(N_PARTICLES):
     biases = []
     pweights = []
     pbiases = []
+    lweights = None
+    lbiases = None
+    if LBPSO:
+        # Initialize the list
+        lweights = []
+        lbiases = []
     pbestrand = tf.Variable(tf.random_uniform(
         shape=[], maxval=P_BEST_FACTOR),
         name='pno' + str(pno + 1) + 'pbestrand',
@@ -237,7 +244,6 @@ for pno in range(N_PARTICLES):
     lfit = None
     if LBPSO:
         lfit = tf.Variable(math.inf, name='pno' + str(pno + 1) + 'lfit')
-
     net = net_in
     # Define the parameters
 
@@ -255,6 +261,13 @@ for pno in range(N_PARTICLES):
         biases.append(b)
         pweights.append(pw)
         pbiases.append(pb)
+        lw = None
+        lb = None
+        if LBPSO:
+            lw = tf.Variable(pw.initialized_value(), name='lbest_w')
+            lb = tf.Variable(pb.initialized_value(), name='lbest_b')
+            lbiases.append(lw)
+            lweights.append(lb)
 
         # Multiply by the Velocity Decay
         nextvw = tf.multiply(vw, t_VELOCITY_DECAY)
@@ -263,6 +276,14 @@ for pno in range(N_PARTICLES):
         # Differences between Particle Best & Current
         pdiffw = tf.multiply(tf.subtract(pw, w), pbestrand)
         pdiffb = tf.multiply(tf.subtract(pb, b), pbestrand)
+
+        # Differences between the Local Best & Current
+        ldiffw = None
+        ldiffb = None
+        if LBPSO:
+            ldiffw = tf.multiply(tf.subtract(lw, w), lbestrand)
+            ldiffb = tf.multiply(tf.subtract(lb, w), lbestrand)
+
         # Define & Reuse the GBest
         gw = None
         gb = None
@@ -277,40 +298,43 @@ for pno in range(N_PARTICLES):
                                      initializer=tf.zeros_initializer)
 
         # If first Particle add to Global Else it is already present
-        if pno == 0:
+        if pno == 0 and not LBPSO:
             gweights.append(gw)
             gbiases.append(gb)
-
+        gdiffw = None
+        gdiffb = None
         # Differences between Global Best & Current
-        gdiffw = tf.multiply(tf.subtract(gw, w), gbestrand)
-        gdiffb = tf.multiply(tf.subtract(gb, b), gbestrand)
+        if not LBPSO:
+            gdiffw = tf.multiply(tf.subtract(gw, w), gbestrand)
+            gdiffb = tf.multiply(tf.subtract(gb, b), gbestrand)
+        else:
+            ldiffw = tf.multiply(tf.subtract(lw, w), lbestrand)
+            ldiffb = tf.mulitply(tf.subtract(lb, b), lbestrand)
+
+        vweightdiffsum = None
+        vbiasdiffsum = None
+        if LBPSO:
+            vweightdiffsum = tf.multiply(
+                tf.add_n([nextvw, pdiffw, ldiffw]),
+                CHI)
+            vbiasdiffsum = tf.multiply(tf.add_n([nextvb, pdiffb, ldiffb]), CHI)
+        else:
+            vweightdiffsum = tf.add_n([nextvw, pdiffw, gdiffw])
+            vbiasdiffsum = tf.add_n([nextvb, pdiffb, gdiffb])
+
         vweight_update = None
         if VELOCITY_RESTRICT is False:
-            vweight_update = tf.assign(vw,
-                                       tf.add_n([nextvw, pdiffw, gdiffw]),
-                                       validate_shape=True)
+            vweight_update = tf.assign(vw, vweightdiffsum, validate_shape=True)
         else:
-            vweight_update = tf.assign(vw,
-                                       maxclip(
-                                           tf.add_n(
-                                               [nextvw, pdiffw, gdiffw]
-                                           ),
-                                           t_MVEL),
+            vweight_update = tf.assign(vw, maxclip(vweightdiffsum, t_MVEL),
                                        validate_shape=True)
 
         vweight_updates.append(vweight_update)
         vbias_update = None
         if VELOCITY_RESTRICT is False:
-            vbias_update = tf.assign(vb,
-                                     tf.add_n([nextvb, pdiffb, gdiffb]),
-                                     validate_shape=True)
+            vbias_update = tf.assign(vb, vbiasdiffsum, validate_shape=True)
         else:
-            vbias_update = tf.assign(vb,
-                                     maxclip(
-                                         tf.add_n(
-                                             [nextvb, pdiffb, gdiffb]
-                                         ),
-                                         t_MVEL),
+            vbias_update = tf.assign(vb, maxclip(vbiasdiffsum, t_MVEL),
                                      validate_shape=True)
 
         vbias_updates.append(vbias_update)
@@ -352,17 +376,22 @@ for pno in range(N_PARTICLES):
         fit_update = tf.assign(pbiases[i], pbias, validate_shape=True)
         fit_updates.append(fit_update)
 
-        # Global Best
-        gweight = tf.cond(loss <= gfit,
-                          lambda: weights[i],
-                          lambda: gweights[i])
-        fit_update = tf.assign(gweights[i], gweight, validate_shape=True)
-        fit_updates.append(fit_update)
-        gbias = tf.cond(loss <= gfit,
-                        lambda: biases[i],
-                        lambda: gbiases[i])
-        fit_update = tf.assign(gbiases[i], gbias, validate_shape=True)
-        fit_updates.append(fit_update)
+        if LBPSO:
+            lneigh = str((pno - 1) % N_PARTICLES)
+            rneigh = str((pno + 1) % N_PARTICLES)
+
+        if not LBPSO:
+            # Global Best
+            gweight = tf.cond(loss <= gfit,
+                              lambda: weights[i],
+                              lambda: gweights[i])
+            fit_update = tf.assign(gweights[i], gweight, validate_shape=True)
+            fit_updates.append(fit_update)
+            gbias = tf.cond(loss <= gfit,
+                            lambda: biases[i],
+                            lambda: gbiases[i])
+            fit_update = tf.assign(gbiases[i], gbias, validate_shape=True)
+            fit_updates.append(fit_update)
 
     # Update the lists
     nets.append(net)
