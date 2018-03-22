@@ -25,7 +25,7 @@ def fc(input_tensor, n_output_units, scope,
        activation_fn='relu', uniform=False):
     shape = [input_tensor.get_shape().as_list()[-1], n_output_units]
     # Use the Scope specified
-    with tf.variable_scope(scope):
+    with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
         # Init Weights
         if uniform:
             weights = tf.Variable(tf.random_uniform(
