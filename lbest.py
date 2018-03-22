@@ -131,7 +131,10 @@ LBPSO = args.lbpso
 N_ITERATIONS = args.iter
 HIDDEN_LAYERS = args.hl
 PRINT_ITER = args.pi
-CHI = chical(P_BEST_FACTOR, L_BEST_FACTOR)
+
+# Chi cannot be used for low value of pbest & lbest factors
+# CHI = chical(P_BEST_FACTOR, L_BEST_FACTOR)
+CHI = 1  # Temporary Fix
 
 
 # Basic Neural Network Definition
@@ -189,6 +192,7 @@ vbias_updates = []
 # Fitness Updates
 fit_updates = []
 
+
 # Control Updates - Controling PSO inside tf.Graph
 control_updates = []
 
@@ -240,10 +244,17 @@ for pno in range(N_PARTICLES):
         random_values.append(gbestrand)
     else:
         random_values.append(lbestrand)
+    pfit = None
+    with tf.variable_scope("fitnessvals", reuse=tf.AUTO_REUSE):
+        init = tf.constant(math.inf)
+        pfit = tf.get_variable(name=str(pno + 1),
+                               initializer=init)
+
     pfit = tf.Variable(math.inf, name='pno' + str(pno + 1) + 'fit')
-    lfit = None
+
+    localfit = None
     if LBPSO:
-        lfit = tf.Variable(math.inf, name='pno' + str(pno + 1) + 'lfit')
+        localfit = tf.Variable(math.inf, name='pno' + str(pno + 1) + 'lfit')
     net = net_in
     # Define the parameters
 
@@ -266,8 +277,8 @@ for pno in range(N_PARTICLES):
         if LBPSO:
             lw = tf.Variable(pw.initialized_value(), name='lbest_w')
             lb = tf.Variable(pb.initialized_value(), name='lbest_b')
-            lbiases.append(lw)
-            lweights.append(lb)
+            lbiases.append(lb)
+            lweights.append(lw)
 
         # Multiply by the Velocity Decay
         nextvw = tf.multiply(vw, t_VELOCITY_DECAY)
@@ -309,7 +320,7 @@ for pno in range(N_PARTICLES):
             gdiffb = tf.multiply(tf.subtract(gb, b), gbestrand)
         else:
             ldiffw = tf.multiply(tf.subtract(lw, w), lbestrand)
-            ldiffb = tf.mulitply(tf.subtract(lb, b), lbestrand)
+            ldiffb = tf.multiply(tf.subtract(lb, b), lbestrand)
 
         vweightdiffsum = None
         vbiasdiffsum = None
@@ -348,9 +359,10 @@ for pno in range(N_PARTICLES):
     particlebest = tf.cond(loss < pfit, lambda: loss, lambda: pfit)
     fit_update = tf.assign(pfit, particlebest, validate_shape=True)
     fit_updates.append(fit_update)
-    globalbest = tf.cond(loss < gfit, lambda: loss, lambda: gfit)
-    fit_update = tf.assign(gfit, globalbest, validate_shape=True)
-    fit_updates.append(fit_update)
+    if not LBPSO:
+        globalbest = tf.cond(loss < gfit, lambda: loss, lambda: gfit)
+        fit_update = tf.assign(gfit, globalbest, validate_shape=True)
+        fit_updates.append(fit_update)
     control_update = tf.assign(t_MVEL, tf.multiply(t_MVEL, MAX_VEL_DECAY),
                                validate_shape=True)
     control_updates.append(control_update)
@@ -361,9 +373,7 @@ for pno in range(N_PARTICLES):
 
     # Multiple Length Checks
     assert len(weights) == len(biases)
-    assert len(gweights) == len(gbiases)
     assert len(pweights) == len(pbiases)
-    assert len(gweights) == len(weights)
     assert len(pweights) == len(weights)
 
     for i in range(len(weights)):
@@ -377,8 +387,84 @@ for pno in range(N_PARTICLES):
         fit_updates.append(fit_update)
 
         if LBPSO:
-            lneigh = str((pno - 1) % N_PARTICLES)
-            rneigh = str((pno + 1) % N_PARTICLES)
+            lneigh = (pno - 1) % N_PARTICLES
+            rneigh = (pno + 1) % N_PARTICLES
+            lneighscope = 'pno' + str(lneigh + 1) + 'fc' + str(i + 1)
+            rneighscope = 'pno' + str(rneigh + 1) + 'fc' + str(i + 1)
+            lneigh_weight = None
+            lneigh_bias = None
+            rneigh_weight = None
+            rneigh_bias = None
+            lfit = None
+            rfit = None
+
+            with tf.variable_scope(lneighscope, reuse=tf.AUTO_REUSE):
+                lneigh_weight = tf.get_variable(
+                    shape=[LAYERS[i], LAYERS[i + 1]],
+                    name='pbest_w',
+                    initializer=tf.random_uniform_initializer)
+                # [LAYERS[idx + 1]]
+                lneigh_bias = tf.get_variable(
+                    shape=[LAYERS[i + 1]],
+                    name='pbest_b',
+                    initializer=tf.random_uniform_initializer)
+            with tf.variable_scope(rneighscope, reuse=tf.AUTO_REUSE):
+                rneigh_weight = tf.get_variable(
+                    shape=[LAYERS[i], LAYERS[i + 1]],
+                    name='pbest_w',
+                    initializer=tf.random_uniform_initializer)
+                # [LAYERS[idx + 1]]
+                rneigh_bias = tf.get_variable(
+                    shape=[LAYERS[i + 1]],
+                    name='pbest_b',
+                    initializer=tf.random_uniform_initializer)
+
+            with tf.variable_scope("fitnessvals", reuse=tf.AUTO_REUSE):
+                init = tf.constant(math.inf)
+                lfit = tf.get_variable(name=str(lneigh + 1), initializer=init)
+                rfit = tf.get_variable(name=str(rneigh + 1), initializer=init)
+
+            new_local_weight = None
+            new_local_bias = None
+            new_local_fit = None
+
+            # Deal with Local Fitness
+            neighbor_best_fit = tf.cond(lfit <= rfit,
+                                        lambda: lfit, lambda: rfit)
+            particle_best_fit = tf.cond(pfit <= localfit,
+                                        lambda: pfit, lambda: localfit)
+            best_fit = tf.cond(neighbor_best_fit <= particle_best_fit,
+                               lambda: neighbor_best_fit,
+                               lambda: particle_best_fit)
+            fit_update = tf.assign(localfit, best_fit, validate_shape=True)
+            fit_updates.append(fit_update)
+
+            # Deal with Local Best Weights
+            neighbor_best_weight = tf.cond(lfit <= rfit,
+                                           lambda: lneigh_weight,
+                                           lambda: rneigh_weight)
+            particle_best_weight = tf.cond(pfit <= localfit,
+                                           lambda: pweights[i],
+                                           lambda: lweights[i])
+            best_weight = tf.cond(neighbor_best_fit <= particle_best_fit,
+                                  lambda: neighbor_best_weight,
+                                  lambda: particle_best_weight)
+            fit_update = tf.assign(
+                lweights[i], best_weight, validate_shape=True)
+            fit_updates.append(fit_update)
+
+            # Deal with Local Best Biases
+            neighbor_best_bias = tf.cond(lfit <= rfit,
+                                         lambda: lneigh_bias,
+                                         lambda: rneigh_bias)
+            particle_best_bias = tf.cond(pfit <= localfit,
+                                         lambda: pbiases[i],
+                                         lambda: lbiases[i])
+            best_bias = tf.cond(neighbor_best_fit <= particle_best_fit,
+                                lambda: neighbor_best_bias,
+                                lambda: particle_best_bias)
+            fit_update = tf.assign(lbiases[i], best_bias, validate_shape=True)
+            fit_updates.append(fit_update)
 
         if not LBPSO:
             # Global Best
@@ -421,7 +507,11 @@ random_updates = [r.initializer for r in random_values]
 updates = weight_updates + bias_updates + \
     random_updates + vbias_updates + vweight_updates + \
     fit_updates + control_updates + hybrid_updates
-req_list = losses, updates, gfit, gbiases, vweights, vbiases, gweights
+req_list = None
+if not LBPSO:
+    req_list = losses, updates, gfit, gbiases, vweights, vbiases, gweights
+else:
+    req_list = losses, updates, vweights, vbiases
 
 with tf.Session() as sess:
     sess.run(init)
@@ -435,12 +525,17 @@ with tf.Session() as sess:
         # xor_in,xor_out = xor_next_batch(N_BATCHSIZE,N_IN)
         _tuple = sess.run(req_list, feed_dict={
             net_in: xor_in, label: xor_out})
-        dict_out, _, gfit, gbiases, vweights, vbiases, gweights = _tuple
-
-        _losses = dict_out
+        _losses = None
+        if not LBPSO:
+            _losses, _, gfit, gbiases, vweights, vbiases, gweights = _tuple
+        else:
+            _losses, _, vweights, vbiases = _tuple
         if (i + 1) % PRINT_ITER == 0:
-            print('Losses:', _losses, 'Iteration:', i)
-            print('Gfit:', gfit)
+            print('Losses:', _losses, 'Iteration:', i+1)
+            if not LBPSO:
+                print('Gfit:', gfit)
+            else:
+                print('Best Particle', min(_losses))
 
     end_time = time.time()
     # Close the writer
