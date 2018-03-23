@@ -60,7 +60,7 @@ def fcn_stats(net_def):
     zip_weights = zip(net_def[0:-1], net_def[1:])
     layer_weights = list(map(lambda zi: zi[0] * zi[1], zip_weights))
     num_weights = reduce(operator.add, layer_weights)
-    num_biases = reduce(operator.mul, net_def[1:])
+    num_biases = reduce(operator.add, net_def[1:])
     tot_dim = num_weights + num_biases
     print('#*******NET STATS*******#')
     print('Layers\t\t\t:', num_l)
