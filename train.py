@@ -210,6 +210,8 @@ if not LBPSO:
 
 # TODO:Parellized the following loop
 # TODO:See if the Conditional Function Lambdas can be optimized
+
+fcn_stats(LAYERS)
 for pno in range(N_PARTICLES):
     weights = []
     biases = []
@@ -489,7 +491,7 @@ for pno in range(N_PARTICLES):
 
 msgtime('Completed\t\t:')
 
-fcn_stats(LAYERS)
+
 
 # Initialize the entire graph
 init = tf.global_variables_initializer()
