@@ -1,3 +1,7 @@
+# Eager in Haste
+train.py --hybrid --vr --iter 4500
+
+
 # nnpso
 Training of Neural Network using Particle Swarm Optimization.
 
@@ -35,7 +39,7 @@ Thus we propose a new hybrid approach one that scales up crazy parallely. Partic
  - Number of Iterations: Until you get bored.
 
 # Training Neural Network only with PSO
-Not that a great idea. Current testing based on fully connected networks, training with only PSO isn't a sufficient. Works great for Initializations
+Not that a great idea. Current testing based on fully connected networks, training with only PSO isn't a sufficient. Works great for Initializations. Increasing hidden layers however makes pso converge quicker. An increase in network size is compensated with lesser number of iterations.
 
 # Training with Hybrid Approach
 Way to go. Faster than traditional approaches if you have sufficient power.
