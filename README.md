@@ -51,6 +51,9 @@ With the 32 particles the sample network can be trained under 20K iteration with
 
 While using traditional approaches we get stuck up 50% of the times with a learning rate of 0.001. Even after 90000 iteration our losses for the best particle were at 0.002021174.
 
+# Usage
+Cite this work if used for academic purposes. For commercial purposes contact me preferably via mail.
+
 # Project Guidelines
 
 - Testing : Rigorous
