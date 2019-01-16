@@ -70,6 +70,11 @@ Cite this work if used for academic purposes. For commercial purposes contact me
 # Similar Projects
 ## Cublas Version of this Project
 - [Local Best PSO without backprop](https://github.com/chintans111/ANNPSO)
-- More memory efficient atleast Theoratically
+- Non hybrid Approach. Regular old PSO
 - Doesn't store activation of all Layers during Feed Forward
+
+## Test on Iris bundled with QT code
+- https://github.com/asbudhkar/ANN-PSO
+- Some part of core code rewritten by author
+- Tested on Iris
 
